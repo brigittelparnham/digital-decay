@@ -99,10 +99,10 @@ class BlenderObject:
         
         # Base color assignment from decay grids
         if self.row_index is not None and DECAY_GRIDS is not None:
-            # Get a color from decay grids
+            # Get a color from decay grids - pick a specific stage that doesn't have red colors
             try:
-                # Use stage 1 (initial state) colors by default
-                stage_colors = DECAY_GRIDS["stages"][0]["grid"]
+                # Use stage 1 or 2 (initial state) colors by default - avoid later stages that might have red
+                stage_colors = DECAY_GRIDS["stages"][0]["grid"]  # Stage 1 has the best colors
                 if self.row_index < len(stage_colors):
                     # Use the stored grid column 
                     col_index = self.grid_col
@@ -123,26 +123,16 @@ class BlenderObject:
                     self.base_color = [r, g, b]
                     print(f"Assigned color {hex_color} -> {self.base_color} to {self.object_name}")
                 else:
-                    self.base_color = [
-                        random.uniform(0.5, 1.0), 
-                        random.uniform(0.5, 1.0), 
-                        random.uniform(0.5, 1.0)
-                    ]
+                    # Use a pleasant default color instead of random
+                    self.base_color = [0.6, 0.8, 0.6]  # Soft green
             except Exception as e:
                 print(f"Error assigning color: {e}")
-                self.base_color = [
-                    random.uniform(0.5, 1.0), 
-                    random.uniform(0.5, 1.0), 
-                    random.uniform(0.5, 1.0)
-                ]
+                # Use a pleasant default color instead of random
+                self.base_color = [0.6, 0.8, 0.6]  # Soft green
         else:
-            # If no specific color assignment, use brighter random colors
-            self.base_color = [
-                random.uniform(0.5, 1.0), 
-                random.uniform(0.5, 1.0), 
-                random.uniform(0.5, 1.0)
-            ]
-        
+            # If no specific color assignment, use consistent pleasant colors
+            self.base_color = [0.6, 0.8, 0.6]  # Soft green
+                
         # Information about the object
         self.info_text = f"Object: {self.object_name}\nPosition: {self.position}\nRotation: {self.rotation}\nColor: RGB{tuple(int(c*255) for c in self.base_color)}"
         
@@ -187,10 +177,38 @@ class BlenderObject:
         if not self.model:
             return
             
-        # Apply decay effect to color
-        base_color_rgb = tuple(int(c*255) for c in self.base_color)
-        r, g, b = decay_engine.get_decay_color(base_color_rgb)
-        color = (r/255.0, g/255.0, b/255.0)
+        # Get current decay percentage - used to determine appropriate stage
+        decay_percentage = decay_engine.decay_percentage
+        
+        # Get color from appropriate stage based on current decay percentage
+        if self.row_index is not None and DECAY_GRIDS is not None:
+            try:
+                # Map decay percentage to stage index (0-5)
+                # Higher decay percentage = lower decay stage index
+                # 100% decay = stage 0, 0% decay = stage 5
+                stage_idx = min(5, int((100 - decay_percentage) / 20))
+                
+                # Get color from current decay stage for consistent theming
+                stage_colors = DECAY_GRIDS["stages"][stage_idx]["grid"]
+                if self.row_index < len(stage_colors) and self.grid_col < len(stage_colors[self.row_index]):
+                    hex_color = stage_colors[self.row_index][self.grid_col]
+                    
+                    # Convert hex to RGB (0.0-1.0 range)
+                    r = int(hex_color[1:3], 16) / 255.0
+                    g = int(hex_color[3:5], 16) / 255.0
+                    b = int(hex_color[5:7], 16) / 255.0
+                    
+                    # Use these exact colors instead of applying decay effect
+                    color = (r, g, b)
+                else:
+                    # Use base color as fallback
+                    color = tuple(self.base_color)
+            except Exception as e:
+                # Use base color if there's an error
+                color = tuple(self.base_color)
+        else:
+            # Use base color if no specific assignment
+            color = tuple(self.base_color)
         
         # Force GL_COLOR_MATERIAL to ensure colors are properly applied
         glEnable(GL_COLOR_MATERIAL)
@@ -220,6 +238,9 @@ class BlenderObject:
 
 class MainMenu:
     """Main menu with flying Blender objects"""
+
+    _instance = None
+    _objects_state = None
     
     def __init__(self, decay_engine, preloaded_objects=None):
         """
@@ -323,8 +344,17 @@ class MainMenu:
         self.transition_target = None
         
         # Spawn a few initial objects just off-screen to the right
-        for _ in range(5):
-            self.spawn_new_object()
+        # Check if we have preserved state to restore
+        if MainMenu._objects_state:
+            print("Restoring main menu state from previous session")
+            self.restore_state(MainMenu._objects_state)
+        else:
+            # Spawn just 2 initial objects to avoid glitchiness
+            for _ in range(2):
+                self.spawn_new_object()
+
+        # Save this instance for later
+        MainMenu._instance = self
     
     def spawn_new_object(self, position_override=None):
         """
@@ -562,11 +592,11 @@ class MainMenu:
         
         # Determine color based on percentage
         if percentage > 66:
-            color = (0.0, 1.0, 0.0)  # Green
+            color = (173/255, 180/255, 125/255)  # Green
         elif percentage > 33:
-            color = (1.0, 1.0, 0.0)  # Yellow
+            color = (220/255, 228/255, 170/255)  # Yellow
         else:
-            color = (1.0, 0.0, 0.0)  # Red
+            color = (121/255, 159/255, 150/255)  # Red
         
         # Draw filled portion
         glColor4f(color[0], color[1], color[2], 1.0)
@@ -661,7 +691,7 @@ class MainMenu:
                 obj.screen_pos = None
 
     def draw_object_label_with_line(self, obj):
-        """Draw a technical-style label directly attached to object with dashed connecting line"""
+        """Draw a technical-style label directly attached to object with white dashed connecting line"""
         try:
             if not hasattr(obj, 'screen_pos') or obj.screen_pos is None:
                 return
@@ -785,19 +815,8 @@ class MainMenu:
             # Draw connecting line as a dashed line
             glDisable(GL_TEXTURE_2D)
             
-            # Use color from grid for the line
-            if DECAY_GRIDS is not None:
-                try:
-                    hex_color = DECAY_GRIDS["stages"][decay_stage]["grid"][row_index][obj.grid_col]
-                    # Convert hex to RGB (0-1 range)
-                    r = int(hex_color[1:3], 16) / 255.0
-                    g = int(hex_color[3:5], 16) / 255.0
-                    b = int(hex_color[5:7], 16) / 255.0
-                    glColor3f(r, g, b)
-                except (KeyError, IndexError):
-                    glColor3f(1.0, 1.0, 1.0)  # White fallback
-            else:
-                glColor3f(1.0, 1.0, 1.0)  # White fallback
+            # UPDATED: Always use white for the dashed line
+            glColor3f(1.0, 1.0, 1.0)  # Pure white
                 
             glLineWidth(1.0)
             
@@ -881,6 +900,99 @@ class MainMenu:
         
         # Draw decay bar at the bottom of the screen
         self.render_decay_bar()
+
+
+    def save_state(self):
+        """Save the current state of all objects for later restoration"""
+        state = []
+        for obj in self.objects:
+            # Save essential properties for each object
+            obj_state = {
+                'position': obj.position.copy() if isinstance(obj.position, list) else list(obj.position),
+                'rotation': obj.rotation.copy() if isinstance(obj.rotation, list) else list(obj.rotation),
+                'velocity': obj.velocity.copy() if isinstance(obj.velocity, list) else list(obj.velocity),
+                'rotation_speed': obj.rotation_speed.copy() if isinstance(obj.rotation_speed, list) else list(obj.rotation_speed),
+                'scale': obj.scale,
+                'object_name': obj.object_name,
+                'row_index': obj.row_index,
+                'grid_col': obj.grid_col,
+                'base_color': obj.base_color.copy() if isinstance(obj.base_color, list) else list(obj.base_color)
+            }
+            state.append(obj_state)
+        
+        # Save to class static variable
+        MainMenu._objects_state = state
+        print(f"Saved state of {len(state)} objects")
+
+    def restore_state(self, state):
+        """Restore objects from a previously saved state"""
+        self.objects = []
+        
+        # Get path to OBJ files
+        obj_dir = os.path.join("assets", "blender", "objects")
+        
+        for obj_state in state:
+            # Skip objects that have moved off screen
+            if obj_state['position'][0] < -8.0:
+                continue
+                
+            # Find the obj file that matches this object's name
+            obj_file = None
+            if 'object_name' in obj_state:
+                obj_file = os.path.join(obj_dir, obj_state['object_name'])
+                if not os.path.exists(obj_file):
+                    # Try to find by prefix (without extension)
+                    name_prefix = obj_state['object_name'].split('.')[0]
+                    for filename in os.listdir(obj_dir):
+                        if filename.startswith(name_prefix) and filename.endswith('.obj'):
+                            obj_file = os.path.join(obj_dir, filename)
+                            break
+            
+            # If still no match, use a default
+            if not obj_file or not os.path.exists(obj_file):
+                obj_file = os.path.join(obj_dir, "cube.obj")
+                
+            # Check if we have this preloaded
+            preloaded_model = None
+            obj_basename = os.path.basename(obj_file)
+            if self.preloaded_objects and obj_basename in self.preloaded_objects:
+                preloaded_model = self.preloaded_objects[obj_basename]
+                
+            # Create object
+            new_obj = BlenderObject(
+                obj_file, 
+                obj_state['position'], 
+                obj_state['rotation'], 
+                obj_state['scale'], 
+                obj_state['row_index'] if 'row_index' in obj_state else None,
+                preloaded_model
+            )
+            
+            # Restore other properties
+            if 'velocity' in obj_state:
+                new_obj.velocity = obj_state['velocity']
+            if 'rotation_speed' in obj_state:
+                new_obj.rotation_speed = obj_state['rotation_speed']
+            if 'grid_col' in obj_state:
+                new_obj.grid_col = obj_state['grid_col']
+            if 'base_color' in obj_state:
+                new_obj.base_color = obj_state['base_color']
+                
+            self.objects.append(new_obj)
+            
+        print(f"Restored {len(self.objects)} objects from saved state")
+        
+        # Spawn a new object if we have few objects
+        if len(self.objects) < 3:
+            self.spawn_new_object()
+
+    def reset_state(cls):
+        """
+        Reset the saved state to force a fresh main menu on next creation
+        This should be called when the game completes a full cycle
+        """
+        cls._objects_state = None
+        print("Main menu state has been reset")
     
     def update(self):
         """Update game state and handle events"""
@@ -926,11 +1038,13 @@ class MainMenu:
             # This ensures the main menu can trigger the end screen
             if self.decay_engine.decay_percentage <= 0.0:
                 print("DECAY DETECTED AT 0% IN MAIN MENU - Ending main menu")
+                self.save_state()
                 return "end_screen"  # Force transition to end screen
             
             if result is False:
                 running = False
             elif isinstance(result, str):
+                self.save_state()
                 return result
             
             self.render_3d()

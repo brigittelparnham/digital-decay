@@ -1,17 +1,46 @@
 """
-Modified end_screen.py - Simplified red glitchy end screen
+Modified end_screen.py - Simplified end screen using decay colors
 """
 import os
 import pygame
 import random
 import math
 import time
+import json
 from utils.color_utils import load_jetbrains_mono_font
 
 # Constants
 SCREEN_WIDTH = 1024
 SCREEN_HEIGHT = 768
 FPS = 60
+
+# Load colors from decay_grids.json
+def load_decay_colors():
+    """Load color scheme from decay_grids.json"""
+    try:
+        # Get the directory of the current file
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        # Path to the decay_grids.json file
+        json_path = os.path.join(current_dir, 'assets', 'decay_grids.json')
+        
+        with open(json_path, 'r') as f:
+            decay_grids = json.load(f)
+            
+        # Use the selected Option 2 colors from the grid
+        begin_hex = "#adb47d"  # Muted Green from Stage 1
+        middle_hex = "#dce4aa"  # Pale Yellow from Stage 3
+        end_hex = "#799f96"    # Teal from Stage 6
+        
+        # Convert hex to RGB
+        begin_rgb = tuple(int(begin_hex.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+        middle_rgb = tuple(int(middle_hex.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+        end_rgb = tuple(int(end_hex.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+        
+        return begin_rgb, middle_rgb, end_rgb
+    except Exception as e:
+        print(f"Error loading decay colors: {e}")
+        # Default fallback colors
+        return (173, 180, 125), (220, 228, 170), (121, 159, 150)
 
 class GlitchText:
     """Class for text that shows glitch effects"""
@@ -90,31 +119,38 @@ class GlitchText:
         
         # Occasionally draw "echo" of text in different color
         if random.random() < 0.2:
-            echo_color = (255, random.randint(0, 100), random.randint(0, 50))
+            # Use a slightly different tint of decay color
+            r, g, b = self.color
+            echo_color = (min(255, r + random.randint(-20, 20)), 
+                          min(255, g + random.randint(-20, 20)), 
+                          min(255, b + random.randint(-20, 20)))
             echo_text = self.font.render(text_to_render, True, echo_color)
             echo_offset = (random.randint(-5, 5), random.randint(-5, 5))
             echo_pos = (text_rect.x + echo_offset[0], text_rect.y + echo_offset[1])
             surface.blit(echo_text, echo_pos)
 
 def run_end_screen():
-    """Display the end screen with red glitchy effect and auto-reset"""
+    """Display the end screen with glitchy effect and auto-reset"""
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("Digital Decay - DECAYED")
     clock = pygame.time.Clock()
     
+    # Load decay colors
+    healthy_color, warning_color, decay_color = load_decay_colors()
+    
     # Create glitching text elements
     title_text = GlitchText(
         "DECAYED",
         92,  # Larger size for impact
-        (255, 30, 30),  # Bright red
+        decay_color,  # Use decay color
         (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 3)
     )
     
     prompt_text = GlitchText(
         "Press ENTER to restart",
         36,
-        (255, 50, 50),  # Red
+        decay_color,  # Use decay color
         (SCREEN_WIDTH // 2, SCREEN_HEIGHT * 2 // 3)
     )
     
@@ -131,7 +167,7 @@ def run_end_screen():
             'size': random.randint(1, 4),
             'speed_x': random.uniform(-100, 100),
             'speed_y': random.uniform(-100, 100),
-            'color': (random.randint(150, 255), 0, 0, random.randint(50, 150))
+            'color': (*decay_color, random.randint(50, 150))
         }
         particles.append(particle)
     
@@ -200,8 +236,10 @@ def run_end_screen():
             if fade_alpha >= 255:
                 running = False
         
-        # Draw very dark red background
-        screen.fill((15, 0, 0))
+        # Draw very dark background based on decay color
+        r, g, b = decay_color
+        dark_bg = (max(0, r//6), max(0, g//6), max(0, b//6))  # Very dark version of decay color
+        screen.fill(dark_bg)
         
         # Add digital noise (static)
         for _ in range(200):
@@ -209,9 +247,9 @@ def run_end_screen():
             noise_x = random.randint(0, SCREEN_WIDTH - noise_size)
             noise_y = random.randint(0, SCREEN_HEIGHT - noise_size)
             noise_color = (
-                random.randint(150, 255),
-                random.randint(0, 30),
-                random.randint(0, 30)
+                min(255, decay_color[0] + random.randint(-30, 70)),
+                min(255, decay_color[1] + random.randint(-30, 70)),
+                min(255, decay_color[2] + random.randint(-30, 70))
             )
             pygame.draw.rect(
                 screen,
@@ -233,7 +271,7 @@ def run_end_screen():
         for y in range(scan_y_offset, SCREEN_HEIGHT, 20):
             pygame.draw.line(
                 screen,
-                (255, 0, 0, 128),
+                (*decay_color, 128),
                 (0, y),
                 (SCREEN_WIDTH, y),
                 1
@@ -246,7 +284,15 @@ def run_end_screen():
                 block_height = random.randint(10, 40)
                 block_x = random.randint(0, SCREEN_WIDTH - block_width)
                 block_y = random.randint(0, SCREEN_HEIGHT - block_height)
-                block_color = (random.randint(100, 255), 0, 0, random.randint(50, 200))
+                
+                # Use decay color with random variance
+                r, g, b = decay_color
+                block_color = (
+                    min(255, r + random.randint(-30, 50)),
+                    min(255, g + random.randint(-30, 50)),
+                    min(255, b + random.randint(-30, 50)),
+                    random.randint(50, 200)
+                )
                 
                 block_surface = pygame.Surface((block_width, block_height), pygame.SRCALPHA)
                 block_surface.fill(block_color)

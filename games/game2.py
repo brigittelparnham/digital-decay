@@ -233,7 +233,7 @@ class Game2:
         
         # Show loading screen
         loading_font = load_jetbrains_mono_font(24)
-        loading_text = loading_font.render("Initializing Game Assets...", True, (0, 255, 0))
+        loading_text = loading_font.render("Initializing Game Assets...", True, (173, 180, 125))
         loading_rect = loading_text.get_rect(center=(screen_width // 2, screen_height // 2))
         
         # Draw loading screen
@@ -267,7 +267,7 @@ class Game2:
         
         # Show game ready message
         self.screen.fill((0, 0, 0))
-        ready_text = loading_font.render("Game Ready!", True, (0, 255, 0))
+        ready_text = loading_font.render("Game Ready!", True, (173, 180, 125))
         ready_rect = ready_text.get_rect(center=(screen_width // 2, screen_height // 2))
         self.screen.blit(ready_text, ready_rect)
         pygame.display.flip()
@@ -335,10 +335,10 @@ class Game2:
         pygame.draw.rect(surface, (0, 0, 0), button_rect)
         
         # Green outline (2 pixels thick)
-        pygame.draw.rect(surface, (0, 255, 0), button_rect, 2)
+        pygame.draw.rect(surface, (255, 255, 255), button_rect, 2)
         
         # Green text
-        text = self.font.render("Back", True, (0, 255, 0))
+        text = self.font.render("Back", True, (255, 255, 255))
         text_rect = text.get_rect(center=button_rect.center)
         surface.blit(text, text_rect)
         

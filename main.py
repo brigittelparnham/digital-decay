@@ -169,6 +169,8 @@ def main():
             print("Detected restart flag - resetting and going to main menu")
             restart_flag = False
             current_state = "main_menu"
+
+            MainMenu.reset_state()
             
             # Make sure display is properly set up for main menu
             pygame.display.quit()
@@ -214,6 +216,8 @@ def main():
                 # Run start screen with a completely fresh decay engine
                 print("Running start screen")
                 if run_start_screen():
+                    # Reset main menu state when starting a fresh game
+                    MainMenu.reset_state()
                     # User pressed Enter on start screen - set flag to restart the game
                     restart_flag = True
                     print("Start screen complete - setting restart flag")

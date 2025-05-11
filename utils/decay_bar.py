@@ -1,9 +1,38 @@
 """
-decay_bar.py - Decay progress bar implementation with simple color transitions
+decay_bar.py - Decay progress bar implementation with colors from decay_grids.json
 """
 import pygame
 import os
+import json
 from utils.color_utils import load_jetbrains_mono_font
+
+# Load colors from decay_grids.json
+def load_decay_colors():
+    """Load color scheme from decay_grids.json"""
+    try:
+        # Get the directory of the current file
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        # Path to the decay_grids.json file - need to go up one level to get to the project root
+        json_path = os.path.join(current_dir, '..', 'assets', 'decay_grids.json')
+        
+        with open(json_path, 'r') as f:
+            decay_grids = json.load(f)
+            
+        # Use the selected Option 2 colors from the grid
+        begin_hex = "#adb47d"  # Muted Green from Stage 1
+        middle_hex = "#dce4aa"  # Pale Yellow from Stage 3
+        end_hex = "#799f96"    # Teal from Stage 6
+        
+        # Convert hex to RGB
+        begin_rgb = tuple(int(begin_hex.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+        middle_rgb = tuple(int(middle_hex.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+        end_rgb = tuple(int(end_hex.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+        
+        return begin_rgb, middle_rgb, end_rgb
+    except Exception as e:
+        print(f"Error loading decay colors: {e}")
+        # Default fallback colors
+        return (173, 180, 125), (220, 228, 170), (121, 159, 150)
 
 class DecayBar:
     """
@@ -25,6 +54,9 @@ class DecayBar:
         self.rect = rect
         self.decay_engine = decay_engine
         self.full_width = full_width
+        
+        # Load colors from decay_grids.json
+        self.healthy_color, self.warning_color, self.decay_color = load_decay_colors()
         
         # Consistent styling across all screens
         self.bg_color = (0, 0, 0)  # Black background
@@ -62,13 +94,13 @@ class DecayBar:
         fill_width = int(rect.width * (percentage / 100.0))
         fill_rect = pygame.Rect(rect.x, rect.y, fill_width, rect.height)
         
-        # Determine bar color based on percentage
+        # Determine bar color based on percentage using our decay colors
         if percentage > 66:
-            bar_color = (0, 255, 0)  # Green
+            bar_color = self.healthy_color  # Healthy (green)
         elif percentage > 33:
-            bar_color = (255, 255, 0)  # Yellow
+            bar_color = self.warning_color  # Warning (yellow)
         else:
-            bar_color = (255, 0, 0)  # Red
+            bar_color = self.decay_color  # Decayed (teal)
         
         # Draw filled portion with appropriate color
         pygame.draw.rect(surface, bar_color, fill_rect)

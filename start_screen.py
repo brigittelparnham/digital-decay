@@ -1,11 +1,12 @@
 """
-start_screen.py - Start screen with decaying Digital Decay logo
+start_screen.py - Start screen with decaying Digital Decay logo using colors from decay_grids.json
 """
 import os
 import pygame
 import random
 import math
 import time
+import json
 from decay_engine import DecayEngine
 from utils.color_utils import load_jetbrains_mono_font
 
@@ -13,6 +14,34 @@ from utils.color_utils import load_jetbrains_mono_font
 SCREEN_WIDTH = 1024
 SCREEN_HEIGHT = 768
 FPS = 60
+
+# Load colors from decay_grids.json
+def load_decay_colors():
+    """Load color scheme from decay_grids.json"""
+    try:
+        # Get the directory of the current file
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        # Path to the decay_grids.json file
+        json_path = os.path.join(current_dir, 'assets', 'decay_grids.json')
+        
+        with open(json_path, 'r') as f:
+            decay_grids = json.load(f)
+            
+        # Use the selected Option 2 colors from the grid
+        begin_hex = "#adb47d"  # Muted Green from Stage 1
+        middle_hex = "#dce4aa"  # Pale Yellow from Stage 3
+        end_hex = "#799f96"    # Teal from Stage 6
+        
+        # Convert hex to RGB
+        begin_rgb = tuple(int(begin_hex.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+        middle_rgb = tuple(int(middle_hex.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+        end_rgb = tuple(int(end_hex.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+        
+        return begin_rgb, middle_rgb, end_rgb
+    except Exception as e:
+        print(f"Error loading decay colors: {e}")
+        # Default fallback colors
+        return (173, 180, 125), (220, 228, 170), (121, 159, 150)
 
 class DecayingText:
     """Class for text that shows progressive decay effects"""
@@ -48,6 +77,9 @@ class DecayingText:
         self.last_glitch = 0
         self.glitch_interval = 300  # ms
         self.glitch_chars = "!@#$%^&*()-_=+[]{}|;:,.<>/?`~"
+        
+        # Load decay colors
+        self.healthy_color, self.warning_color, self.decay_color = load_decay_colors()
     
     def update(self, delta_time):
         """
@@ -96,11 +128,12 @@ class DecayingText:
             decay = self.char_decay[i]
             
             # Color effect based on decay
-            char_color = (
-                min(255, self.color[0] + int(decay * 100)),
-                max(0, self.color[1] - int(decay * 150)),
-                max(0, self.color[2] - int(decay * 150))
-            )
+            if decay < 0.33:
+                char_color = self.healthy_color
+            elif decay < 0.66:
+                char_color = self.warning_color
+            else:
+                char_color = self.decay_color
             
             # Render character
             rendered_char = self.font.render(char, True, char_color)
@@ -144,7 +177,7 @@ class DecayingText:
             if decay > 0.5:
                 glow_surface = pygame.Surface((char_surface.get_width() + 4, 
                                              char_surface.get_height() + 4), pygame.SRCALPHA)
-                glow_color = (255, 0, 0, int(100 * decay))
+                glow_color = (*self.decay_color, int(100 * decay))
                 pygame.draw.rect(glow_surface, glow_color, glow_surface.get_rect(), 0)
                 
                 # Draw the glow under the character
@@ -164,18 +197,21 @@ def run_start_screen():
     # Create decay engine for visuals
     decay_engine = DecayEngine(decay_time=30)  # Faster decay for visual effect
     
+    # Load decay colors
+    healthy_color, warning_color, decay_color = load_decay_colors()
+    
     # Create decaying text elements
     title_text = DecayingText(
         "DIGITAL DECAY",
         72,
-        (0, 255, 0),  # Green
+        healthy_color,  # Healthy color from our scheme
         (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 3)
     )
     
     prompt_text = DecayingText(
         "Press ENTER to start",
         36,
-        (200, 200, 200),  # Light gray
+        healthy_color,  # Also use healthy color
         (SCREEN_WIDTH // 2, SCREEN_HEIGHT * 2 // 3)
     )
     
@@ -188,9 +224,7 @@ def run_start_screen():
             'size': random.randint(1, 3),
             'speed': random.uniform(10, 50),
             'direction': random.uniform(0, math.pi * 2),
-            'color': (random.randint(0, 100), 
-                     random.randint(100, 200), 
-                     random.randint(0, 100)),
+            'color': healthy_color,  # Use healthy color for particles
             'alpha': random.randint(50, 200)
         }
         particles.append(particle)
@@ -257,15 +291,15 @@ def run_start_screen():
         # Draw background
         screen.fill((0, 0, 0))
         
-        # Draw grid pattern
+        # Draw grid pattern using healthy color
         grid_size = 50
         grid_alpha = int(30 * (1.0 - decay_engine.decay_percentage / 100.0))
         grid_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
         
         for x in range(0, SCREEN_WIDTH, grid_size):
-            pygame.draw.line(grid_surface, (0, 255, 0, grid_alpha), (x, 0), (x, SCREEN_HEIGHT))
+            pygame.draw.line(grid_surface, (*healthy_color, grid_alpha), (x, 0), (x, SCREEN_HEIGHT))
         for y in range(0, SCREEN_HEIGHT, grid_size):
-            pygame.draw.line(grid_surface, (0, 255, 0, grid_alpha), (0, y), (SCREEN_WIDTH, y))
+            pygame.draw.line(grid_surface, (*healthy_color, grid_alpha), (0, y), (SCREEN_WIDTH, y))
         
         screen.blit(grid_surface, (0, 0))
         
