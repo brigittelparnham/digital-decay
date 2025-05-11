@@ -1,0 +1,12 @@
+# Blender 4.3.2 MTL File: 'object alone.blend'
+# www.blender.org
+
+newmtl Material.003
+Ns 202.945801
+Ka 0.524752 0.524752 0.524752
+Kd 0.483100 0.473477 0.220154
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 3
