@@ -1,5 +1,5 @@
 """
-Modified end_screen.py - Simplified end screen using decay colors
+end_screen.py - End screen with PNG images and original intense glitchy effects
 """
 import os
 import pygame
@@ -42,95 +42,205 @@ def load_decay_colors():
         # Default fallback colors
         return (173, 180, 125), (220, 228, 170), (121, 159, 150)
 
-class GlitchText:
-    """Class for text that shows glitch effects"""
+class GlitchyPNGImage:
+    """Class for PNG images that show glitch effects and movement - same style as start screen"""
     
-    def __init__(self, text, font_size, color, pos):
+    def __init__(self, image_path, pos, glitch_intensity=0.1, scale=1.0, max_width=None, max_height=None):
         """
-        Initialize the glitchy text
+        Initialize the glitchy PNG image
         
         Args:
-            text (str): Text to display
-            font (str): Font name or path
-            size (int): Font size
-            color (tuple): RGB color tuple
-            pos (tuple): (x, y) position on screen
+            image_path (str): Path to PNG file
+            pos (tuple): (x, y) position on screen (center position)
+            glitch_intensity (float): How intense the glitch effects should be (0.0 to 1.0)
+            scale (float): Scale factor for the image (1.0 = original size)
+            max_width (int, optional): Maximum width in pixels
+            max_height (int, optional): Maximum height in pixels
         """
-        self.text = text
-        self.font = load_jetbrains_mono_font(font_size)
-        self.color = color
+        self.original_image = None
+        self.current_image = None
         self.pos = pos
+        self.base_pos = pos  # Store original position
+        self.glitch_intensity = glitch_intensity
+        self.scale = scale
+        self.max_width = max_width
+        self.max_height = max_height
         
-        # Glitch effect parameters
+        # Load the image
+        try:
+            loaded_image = pygame.image.load(image_path)
+            print(f"Loaded image: {image_path} - Original size: {loaded_image.get_size()}")
+            
+            # Scale the image if needed
+            self.original_image = self._scale_image(loaded_image)
+            self.current_image = self.original_image.copy()
+            print(f"Final size after scaling: {self.original_image.get_size()}")
+        except Exception as e:
+            print(f"Error loading image {image_path}: {e}")
+            # Create a placeholder surface
+            self.original_image = pygame.Surface((200, 50))
+            self.original_image.fill((255, 0, 255))  # Magenta placeholder
+            self.current_image = self.original_image.copy()
+        
+        # Glitch effect parameters - SAME AS START SCREEN
         self.last_glitch = 0
-        self.glitch_interval = 100  # ms
-        self.glitch_chars = "!@#$%^&*()-_=+[]{}|;:,.<>/?`~"
-        self.glitched_text = self.text
+        self.glitch_interval = random.randint(50, 200)  # ms
+        self.glitch_duration = 0
+        self.glitch_active = False
+        
+        # Movement parameters for glittering - SAME AS START SCREEN
+        self.base_offset = [0, 0]
+        self.jitter_amount = 2  # Maximum pixels to jitter
         
         # Time tracking
         self.time = 0
+        
+        # Color shift parameters - SAME AS START SCREEN
+        self.color_shift_intensity = 0
+        self.color_shift_direction = random.choice([(1, 0, 0), (0, 1, 0), (0, 0, 1)])
     
-    def update(self, delta_time):
+    def _scale_image(self, image):
         """
-        Update the glitch effect
+        Scale the image based on scale factor and size constraints
+        
+        Args:
+            image (pygame.Surface): Original image to scale
+            
+        Returns:
+            pygame.Surface: Scaled image
+        """
+        original_width, original_height = image.get_size()
+        
+        # Apply scale factor
+        new_width = int(original_width * self.scale)
+        new_height = int(original_height * self.scale)
+        
+        # Apply max width/height constraints if specified
+        if self.max_width and new_width > self.max_width:
+            scale_factor = self.max_width / new_width
+            new_width = self.max_width
+            new_height = int(new_height * scale_factor)
+        
+        if self.max_height and new_height > self.max_height:
+            scale_factor = self.max_height / new_height
+            new_height = self.max_height
+            new_width = int(new_width * scale_factor)
+        
+        # Only scale if size changed
+        if (new_width, new_height) != (original_width, original_height):
+            return pygame.transform.scale(image, (new_width, new_height))
+        else:
+            return image
+    
+    def update(self, delta_time, decay_level):
+        """
+        Update the glitch effect and movement - SAME AS START SCREEN
         
         Args:
             delta_time (float): Time in seconds since last update
+            decay_level (float): Current decay level (0.0 to 1.0)
         """
         self.time += delta_time
         
-        # Update glitch effect
+        # Adjust glitch intensity based on decay level - SAME AS START SCREEN
+        current_intensity = self.glitch_intensity * (0.5 + decay_level * 0.5)
+        
+        # Update glitch state - SAME AS START SCREEN
         current_time = pygame.time.get_ticks()
         if current_time - self.last_glitch > self.glitch_interval:
             self.last_glitch = current_time
-            self.glitch_interval = random.randint(50, 200)
+            self.glitch_interval = random.randint(50, 300)
             
-            # Create glitched version of text
-            self.glitched_text = ""
-            for char in self.text:
-                # Higher percentage chance of glitches for more broken feel
-                if random.random() < 0.3:
-                    self.glitched_text += random.choice(self.glitch_chars)
-                else:
-                    self.glitched_text += char
+            # Start glitch effect - SAME AS START SCREEN
+            if random.random() < current_intensity:
+                self.glitch_active = True
+                self.glitch_duration = random.randint(50, 150)
+                self.color_shift_intensity = random.uniform(0.1, 0.3) * current_intensity
+                self.color_shift_direction = random.choice([(1, 0, 0), (0, 1, 0), (0, 0, 1)])
+        
+        # Apply glitch effects if active - SAME AS START SCREEN
+        if self.glitch_active:
+            self.glitch_duration -= delta_time * 1000
+            if self.glitch_duration <= 0:
+                self.glitch_active = False
+                self.current_image = self.original_image.copy()
+            else:
+                self.apply_glitch_effect()
+        
+        # Update jitter movement - SAME AS START SCREEN
+        jitter_intensity = current_intensity * self.jitter_amount
+        self.base_offset[0] = random.uniform(-jitter_intensity, jitter_intensity)
+        self.base_offset[1] = random.uniform(-jitter_intensity, jitter_intensity)
+    
+    def apply_glitch_effect(self):
+        """Apply various glitch effects to the image - EXACT SAME AS START SCREEN"""
+        if not self.original_image:
+            return
+            
+        # Start with original image
+        self.current_image = self.original_image.copy()
+        
+        # Apply color channel shift - SAME AS START SCREEN
+        if self.color_shift_intensity > 0:
+            # Create color-shifted versions
+            red_shift = pygame.Surface(self.original_image.get_size(), pygame.SRCALPHA)
+            green_shift = pygame.Surface(self.original_image.get_size(), pygame.SRCALPHA)
+            blue_shift = pygame.Surface(self.original_image.get_size(), pygame.SRCALPHA)
+            
+            # Extract color channels
+            pixels = pygame.surfarray.array3d(self.original_image)
+            
+            # Create shifted versions
+            shift_amount = int(self.color_shift_intensity * 10)
+            if shift_amount > 0:
+                # Red channel shift
+                red_pixels = pixels.copy()
+                red_pixels[:, :, 1] = 0  # Remove green
+                red_pixels[:, :, 2] = 0  # Remove blue
+                pygame.surfarray.blit_array(red_shift, red_pixels)
+                
+                # Shift position slightly
+                red_offset = (random.randint(-shift_amount, shift_amount), 
+                             random.randint(-shift_amount, shift_amount))
+                self.current_image.blit(red_shift, red_offset, special_flags=pygame.BLEND_ADD)
+        
+        # Apply scanline effect - SAME AS START SCREEN
+        if random.random() < 0.3:
+            scanline_surface = pygame.Surface(self.current_image.get_size(), pygame.SRCALPHA)
+            for y in range(0, self.current_image.get_height(), random.randint(2, 5)):
+                pygame.draw.line(scanline_surface, (0, 0, 0, 100), 
+                               (0, y), (self.current_image.get_width(), y))
+            self.current_image.blit(scanline_surface, (0, 0))
+        
+        # Apply random pixel corruption - SAME AS START SCREEN
+        if random.random() < 0.2:
+            corrupt_surface = pygame.Surface(self.current_image.get_size(), pygame.SRCALPHA)
+            for _ in range(random.randint(5, 20)):
+                x = random.randint(0, self.current_image.get_width() - 1)
+                y = random.randint(0, self.current_image.get_height() - 1)
+                color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+                pygame.draw.rect(corrupt_surface, color, (x, y, random.randint(1, 5), random.randint(1, 5)))
+            self.current_image.blit(corrupt_surface, (0, 0))
     
     def draw(self, surface):
         """
-        Draw the glitching text
+        Draw the glitchy image - SAME AS START SCREEN
         
         Args:
             surface (pygame.Surface): Surface to draw on
         """
-        # Decide whether to draw normal or glitched text
-        text_to_render = self.glitched_text if random.random() < 0.5 else self.text
+        if not self.current_image:
+            return
         
-        # Render text
-        rendered_text = self.font.render(text_to_render, True, self.color)
+        # Calculate final position with offsets
+        final_x = self.base_pos[0] + self.base_offset[0] - self.current_image.get_width() // 2
+        final_y = self.base_pos[1] + self.base_offset[1] - self.current_image.get_height() // 2
         
-        # Apply random offset for glitchy feel
-        offset_x = random.randint(-3, 3) if random.random() < 0.3 else 0
-        offset_y = random.randint(-3, 3) if random.random() < 0.3 else 0
-        
-        # Calculate position
-        text_rect = rendered_text.get_rect(center=(self.pos[0] + offset_x, self.pos[1] + offset_y))
-        
-        # Draw text
-        surface.blit(rendered_text, text_rect)
-        
-        # Occasionally draw "echo" of text in different color
-        if random.random() < 0.2:
-            # Use a slightly different tint of decay color
-            r, g, b = self.color
-            echo_color = (min(255, r + random.randint(-20, 20)), 
-                          min(255, g + random.randint(-20, 20)), 
-                          min(255, b + random.randint(-20, 20)))
-            echo_text = self.font.render(text_to_render, True, echo_color)
-            echo_offset = (random.randint(-5, 5), random.randint(-5, 5))
-            echo_pos = (text_rect.x + echo_offset[0], text_rect.y + echo_offset[1])
-            surface.blit(echo_text, echo_pos)
+        # Draw the image
+        surface.blit(self.current_image, (final_x, final_y))
 
 def run_end_screen():
-    """Display the end screen with glitchy effect and auto-reset"""
+    """Display the end screen with PNG images and ORIGINAL intense glitchy background effects"""
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("Digital Decay - DECAYED")
@@ -139,26 +249,90 @@ def run_end_screen():
     # Load decay colors
     healthy_color, warning_color, decay_color = load_decay_colors()
     
-    # Create glitching text elements
-    title_text = GlitchText(
-        "DECAYED",
-        92,  # Larger size for impact
-        decay_color,  # Use decay color
-        (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 3)
-    )
+    # Load PNG images for end screen - EXACT SAME POSITIONS AS START SCREEN
+    images = []
     
-    prompt_text = GlitchText(
-        "Press ENTER to restart",
-        36,
-        decay_color,  # Use decay color
-        (SCREEN_WIDTH // 2, SCREEN_HEIGHT * 2 // 3)
-    )
+    # Calculate center positions for the layout (exactly like start screen)
+    title_y = SCREEN_HEIGHT // 3  # Main title line
+    game_y = title_y + 80  # GAME below the main title
+    cubes_y = title_y + 20  # Cubes slightly below title line but behind text
+    
+    image_configs = [
+        {
+            'path': os.path.join('assets', 'images', 'cubes.png'),
+            'pos': (SCREEN_WIDTH // 2, title_y),  # Same as start screen
+            'glitch_intensity': 0.2,  # SAME AS START SCREEN
+            'scale': 1.2,  # Same scale as start
+            'max_width': 450,
+            'max_height': 180
+        },
+        {
+            'path': os.path.join('assets', 'images', 'digital.png'),
+            'pos': (SCREEN_WIDTH // 2 - 160, title_y),  # Same as start screen
+            'glitch_intensity': 0.15,  # SAME AS START SCREEN
+            'scale': 0.9,  # Same scale as start
+            'max_width': 220,
+            'max_height': 120
+        },
+        {
+            'path': os.path.join('assets', 'images', 'shape_around_decay.png'),
+            'pos': (SCREEN_WIDTH // 2, title_y),  # Same as start screen
+            'glitch_intensity': 0.1,  # SAME AS START SCREEN
+            'scale': 1.3,  # Same scale as start
+            'max_width': 270,
+            'max_height': 140
+        },
+        {
+            'path': os.path.join('assets', 'images', 'decay.png'),
+            'pos': (SCREEN_WIDTH // 2 - 5, title_y),  # Same as start screen
+            'glitch_intensity': 0.15,  # SAME AS START SCREEN
+            'scale': 1.3,  # Same scale as start
+            'max_width': 200,
+            'max_height': 120
+        },
+        {
+            'path': os.path.join('assets', 'images', 'game.png'),
+            'pos': (SCREEN_WIDTH // 2 + 140, title_y + 5),  # Same as start screen
+            'glitch_intensity': 0.1,  # SAME AS START SCREEN
+            'scale': 0.9,  # Same scale as start
+            'max_width': 180,
+            'max_height': 100
+        },
+        {
+            'path': os.path.join('assets', 'images', 'shape_around_enter.png'),
+            'pos': (SCREEN_WIDTH // 2, SCREEN_HEIGHT * 2 // 3 - 5),  # Same as start screen
+            'glitch_intensity': 0.05,  # SAME AS START SCREEN
+            'scale': 0.8,  # Same scale as start
+            'max_width': 240,
+            'max_height': 100
+        },
+        {
+            'path': os.path.join('assets', 'images', 'press_enter.png'),  # KEEP PRESS ENTER for now
+            'pos': (SCREEN_WIDTH // 2 - 7, SCREEN_HEIGHT * 2 // 3),  # Same position as press_enter
+            'glitch_intensity': 0.1,  # SAME AS START SCREEN
+            'scale': 1.1,  # Same scale as start
+            'max_width': 320,
+            'max_height': 90
+        }
+    ]
+    
+    # Create GlitchyPNGImage objects with SAME glitch style as start screen
+    for config in image_configs:
+        image = GlitchyPNGImage(
+            config['path'], 
+            config['pos'], 
+            config['glitch_intensity'],
+            config.get('scale', 1.0),
+            config.get('max_width'),
+            config.get('max_height')
+        )
+        images.append(image)
     
     # Set up auto-reset timer (30 seconds)
     start_time = time.time()
     auto_reset_time = 30  # seconds
     
-    # Create some basic particles for background distortion
+    # Create ORIGINAL end screen particles for background distortion
     particles = []
     for _ in range(50):
         particle = {
@@ -178,6 +352,10 @@ def run_end_screen():
     
     # Keep track of time
     last_time = pygame.time.get_ticks()
+    
+    # Blinking effect for press enter - more erratic for end screen
+    blink_timer = 0
+    show_press_enter = True
     
     # Main loop
     running = True
@@ -203,9 +381,9 @@ def run_end_screen():
                     pygame.quit()
                     return False  # Signal to quit game
         
-        # Update text elements
-        title_text.update(delta_time)
-        prompt_text.update(delta_time)
+        # Update all images
+        for image in images:
+            image.update(delta_time, 1.0)  # Full decay for end screen
         
         # Update particles
         for particle in particles:
@@ -236,12 +414,18 @@ def run_end_screen():
             if fade_alpha >= 255:
                 running = False
         
+        # Update blinking for press enter - make the prompt text blink at an irregular rate
+        if int(current_time * 0.001) % 2 == 0:
+            show_press_enter = True
+        else:
+            show_press_enter = False
+        
         # Draw very dark background based on decay color
         r, g, b = decay_color
         dark_bg = (max(0, r//6), max(0, g//6), max(0, b//6))  # Very dark version of decay color
         screen.fill(dark_bg)
         
-        # Add digital noise (static)
+        # Add digital noise (static) - ORIGINAL INTENSE EFFECT
         for _ in range(200):
             noise_size = random.randint(1, 3)
             noise_x = random.randint(0, SCREEN_WIDTH - noise_size)
@@ -266,7 +450,7 @@ def run_end_screen():
                 particle['size']
             )
         
-        # Add horizontal scan lines
+        # Add horizontal scan lines - ORIGINAL EFFECT
         scan_y_offset = int(current_time / 50) % 20
         for y in range(scan_y_offset, SCREEN_HEIGHT, 20):
             pygame.draw.line(
@@ -277,7 +461,7 @@ def run_end_screen():
                 1
             )
         
-        # Draw glitchy blocks
+        # Draw glitchy blocks - ORIGINAL INTENSE EFFECT
         for _ in range(10):
             if random.random() < 0.3:
                 block_width = random.randint(50, 200)
@@ -298,12 +482,16 @@ def run_end_screen():
                 block_surface.fill(block_color)
                 screen.blit(block_surface, (block_x, block_y))
         
-        # Draw text elements
-        title_text.draw(screen)
+        # Draw PNG images in exact same order as start screen
+        image_order = [0, 1, 2, 3, 4, 5, 6]  # cubes, digital, shape_decay, decay, game, shape_enter, press_enter
         
-        # Make the prompt text blink at an irregular rate
-        if int(current_time * 0.001) % 2 == 0:
-            prompt_text.draw(screen)
+        for i in image_order:
+            if i < len(images):
+                # Skip press_enter if blinking and should be hidden
+                if i == 6 and not show_press_enter:  # press_enter.png
+                    continue
+                    
+                images[i].draw(screen)
         
         # Draw fade overlay
         if fade_alpha > 0:
