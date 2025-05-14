@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Digital Decay - Entropy Game</title>
+    <meta name="description" content="A game exploring digital entropy and decay. Battle system deterioration through three unique mini-games.">
     <style>
         :root {
             --healthy-color: #adb47d;
@@ -20,10 +21,11 @@
         }
         
         body {
-            font-family: 'Courier New', monospace;
+            font-family: 'Courier New', Monaco, monospace;
             background: var(--bg-darker);
             color: var(--healthy-color);
             overflow-x: hidden;
+            line-height: 1.6;
         }
         
         .noise {
@@ -155,6 +157,7 @@
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
+            cursor: pointer;
         }
         
         .download-btn:hover {
@@ -176,6 +179,13 @@
         
         .download-btn:hover::before {
             left: 100%;
+        }
+        
+        .coming-soon {
+            text-align: center;
+            color: var(--warning-color);
+            font-style: italic;
+            margin-top: 1rem;
         }
         
         .features {
@@ -245,6 +255,17 @@
             color: #666;
         }
         
+        .github-link {
+            color: var(--healthy-color);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        
+        .github-link:hover {
+            color: var(--warning-color);
+            text-shadow: 0 0 5px var(--warning-color);
+        }
+        
         @media (max-width: 768px) {
             .title {
                 font-size: 2.5rem;
@@ -258,6 +279,15 @@
             .container {
                 padding: 1rem;
             }
+        }
+        
+        .alert {
+            background: rgba(220, 228, 170, 0.1);
+            border: 1px solid var(--warning-color);
+            border-radius: 5px;
+            padding: 1rem;
+            margin: 1rem 0;
+            color: var(--warning-color);
         }
     </style>
 </head>
@@ -284,21 +314,34 @@
         <section class="download-section">
             <h2 style="text-align: center; margin-bottom: 2rem; color: var(--warning-color);">Download Game</h2>
             
+            <div class="alert">
+                <strong>📢 Development Status:</strong> The game is currently in development. 
+                Executable builds will be available soon through GitHub Releases.
+            </div>
+            
             <div class="download-buttons">
-                <a href="#" class="download-btn" onclick="showDownloadInfo('windows')">
-                    ⊞ Windows
-                </a>
-                <a href="#" class="download-btn" onclick="showDownloadInfo('mac')">
-                    ⌘ macOS
-                </a>
-                <a href="#" class="download-btn" onclick="showDownloadInfo('linux')">
-                    ⬢ Linux
-                </a>
+                <div class="download-btn" onclick="showDownloadInfo('windows')">
+                    ⊞ Windows (Coming Soon)
+                </div>
+                <div class="download-btn" onclick="showDownloadInfo('mac')">
+                    ⌘ macOS (Coming Soon)
+                </div>
+                <div class="download-btn" onclick="showDownloadInfo('linux')">
+                    ⬢ Linux (Coming Soon)
+                </div>
             </div>
             
             <div id="download-info" style="display: none; background: var(--bg-darker); padding: 1rem; border-radius: 5px; margin-top: 1rem;">
-                <h4 style="color: var(--healthy-color); margin-bottom: 0.5rem;">Download Instructions:</h4>
+                <h4 style="color: var(--healthy-color); margin-bottom: 0.5rem;">Download Information:</h4>
                 <p id="download-text" style="color: #cccccc;"></p>
+            </div>
+            
+            <div class="coming-soon">
+                Executables will be posted here when available. 
+                <br>
+                <a href="https://github.com/yourusername/digital-decay" class="github-link">
+                    Check GitHub for updates →
+                </a>
             </div>
         </section>
         
@@ -332,8 +375,8 @@
     </div>
     
     <footer class="footer">
-        <p>© 2024 Digital Decay. Experience entropy in digital form.</p>
-        <p>View source on <a href="https://github.com/yourusername/digital-decay" style="color: var(--healthy-color);">GitHub</a></p>
+        <p>&copy; 2024 Digital Decay. Experience entropy in digital form.</p>
+        <p>View source on <a href="https://github.com/yourusername/digital-decay" class="github-link">GitHub</a></p>
     </footer>
     
     <script>
@@ -342,9 +385,9 @@
             const textDiv = document.getElementById('download-text');
             
             const messages = {
-                windows: "Windows executable will be available in the GitHub Releases section. Download the .zip file, extract it, and run DigitalDecay.exe",
-                mac: "macOS executable will be available in the GitHub Releases section. Download, extract, and run. You may need to right-click and 'Open' the first time.",
-                linux: "Linux executable will be available in the GitHub Releases section. Download, extract, make executable (chmod +x), and run."
+                windows: "Windows executable will be available in GitHub Releases. Download the .zip file, extract, and run DigitalDecay.exe. You may need to allow it through Windows Defender (normal for unsigned apps).",
+                mac: "macOS executable will be available in GitHub Releases. Download, extract, and run. You may need to right-click and 'Open' the first time due to security settings.",
+                linux: "Linux executable will be available in GitHub Releases. Download, extract, make executable with 'chmod +x DigitalDecay', then run."
             };
             
             textDiv.textContent = messages[platform];

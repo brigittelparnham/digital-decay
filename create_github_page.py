@@ -1,15 +1,15 @@
 """
 create_github_page.py - Create a simple GitHub Pages site for your game
 
-Since your game uses OpenGL and complex dependencies, we'll create a landing page
-that links to downloadable executables rather than trying to run the full game in browser.
+This creates a landing page that links to downloadable executables 
+rather than trying to run the game in browser.
 """
 import os
 import shutil
 import json
 
 def create_github_pages_site():
-    """Create a GitHub Pages compatible site"""
+    """Create a GitHub Pages compatible site in the docs directory"""
     
     # Create docs directory (GitHub Pages default)
     site_dir = "docs"
@@ -17,23 +17,18 @@ def create_github_pages_site():
         shutil.rmtree(site_dir)
     os.makedirs(site_dir)
     
-    # Create assets directory
+    # Create assets directory for any images/files we might want
     assets_dir = os.path.join(site_dir, "assets")
     os.makedirs(assets_dir)
     
-    # Copy some assets for the webpage
-    if os.path.exists("assets"):
-        # Copy decay_grids.json for color scheme
-        if os.path.exists("assets/decay_grids.json"):
-            shutil.copy2("assets/decay_grids.json", assets_dir)
-    
-    # Create index.html
-    html_content = '''<!DOCTYPE html>
+    # Create index.html with a complete, self-contained page
+    html_content = """<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Digital Decay - Entropy Game</title>
+    <meta name="description" content="A game exploring digital entropy and decay. Battle system deterioration through three unique mini-games.">
     <style>
         :root {
             --healthy-color: #adb47d;
@@ -50,10 +45,11 @@ def create_github_pages_site():
         }
         
         body {
-            font-family: 'Courier New', monospace;
+            font-family: 'Courier New', Monaco, monospace;
             background: var(--bg-darker);
             color: var(--healthy-color);
             overflow-x: hidden;
+            line-height: 1.6;
         }
         
         .noise {
@@ -185,6 +181,7 @@ def create_github_pages_site():
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
+            cursor: pointer;
         }
         
         .download-btn:hover {
@@ -206,6 +203,13 @@ def create_github_pages_site():
         
         .download-btn:hover::before {
             left: 100%;
+        }
+        
+        .coming-soon {
+            text-align: center;
+            color: var(--warning-color);
+            font-style: italic;
+            margin-top: 1rem;
         }
         
         .features {
@@ -275,6 +279,17 @@ def create_github_pages_site():
             color: #666;
         }
         
+        .github-link {
+            color: var(--healthy-color);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        
+        .github-link:hover {
+            color: var(--warning-color);
+            text-shadow: 0 0 5px var(--warning-color);
+        }
+        
         @media (max-width: 768px) {
             .title {
                 font-size: 2.5rem;
@@ -288,6 +303,15 @@ def create_github_pages_site():
             .container {
                 padding: 1rem;
             }
+        }
+        
+        .alert {
+            background: rgba(220, 228, 170, 0.1);
+            border: 1px solid var(--warning-color);
+            border-radius: 5px;
+            padding: 1rem;
+            margin: 1rem 0;
+            color: var(--warning-color);
         }
     </style>
 </head>
@@ -314,21 +338,34 @@ def create_github_pages_site():
         <section class="download-section">
             <h2 style="text-align: center; margin-bottom: 2rem; color: var(--warning-color);">Download Game</h2>
             
+            <div class="alert">
+                <strong>📢 Development Status:</strong> The game is currently in development. 
+                Executable builds will be available soon through GitHub Releases.
+            </div>
+            
             <div class="download-buttons">
-                <a href="#" class="download-btn" onclick="showDownloadInfo('windows')">
-                    ⊞ Windows
-                </a>
-                <a href="#" class="download-btn" onclick="showDownloadInfo('mac')">
-                    ⌘ macOS
-                </a>
-                <a href="#" class="download-btn" onclick="showDownloadInfo('linux')">
-                    ⬢ Linux
-                </a>
+                <div class="download-btn" onclick="showDownloadInfo('windows')">
+                    ⊞ Windows (Coming Soon)
+                </div>
+                <div class="download-btn" onclick="showDownloadInfo('mac')">
+                    ⌘ macOS (Coming Soon)
+                </div>
+                <div class="download-btn" onclick="showDownloadInfo('linux')">
+                    ⬢ Linux (Coming Soon)
+                </div>
             </div>
             
             <div id="download-info" style="display: none; background: var(--bg-darker); padding: 1rem; border-radius: 5px; margin-top: 1rem;">
-                <h4 style="color: var(--healthy-color); margin-bottom: 0.5rem;">Download Instructions:</h4>
+                <h4 style="color: var(--healthy-color); margin-bottom: 0.5rem;">Download Information:</h4>
                 <p id="download-text" style="color: #cccccc;"></p>
+            </div>
+            
+            <div class="coming-soon">
+                Executables will be posted here when available. 
+                <br>
+                <a href="https://github.com/yourusername/digital-decay" class="github-link">
+                    Check GitHub for updates →
+                </a>
             </div>
         </section>
         
@@ -362,8 +399,8 @@ def create_github_pages_site():
     </div>
     
     <footer class="footer">
-        <p>© 2024 Digital Decay. Experience entropy in digital form.</p>
-        <p>View source on <a href="https://github.com/yourusername/digital-decay" style="color: var(--healthy-color);">GitHub</a></p>
+        <p>&copy; 2024 Digital Decay. Experience entropy in digital form.</p>
+        <p>View source on <a href="https://github.com/yourusername/digital-decay" class="github-link">GitHub</a></p>
     </footer>
     
     <script>
@@ -372,9 +409,9 @@ def create_github_pages_site():
             const textDiv = document.getElementById('download-text');
             
             const messages = {
-                windows: "Windows executable will be available in the GitHub Releases section. Download the .zip file, extract it, and run DigitalDecay.exe",
-                mac: "macOS executable will be available in the GitHub Releases section. Download, extract, and run. You may need to right-click and 'Open' the first time.",
-                linux: "Linux executable will be available in the GitHub Releases section. Download, extract, make executable (chmod +x), and run."
+                windows: "Windows executable will be available in GitHub Releases. Download the .zip file, extract, and run DigitalDecay.exe. You may need to allow it through Windows Defender (normal for unsigned apps).",
+                mac: "macOS executable will be available in GitHub Releases. Download, extract, and run. You may need to right-click and 'Open' the first time due to security settings.",
+                linux: "Linux executable will be available in GitHub Releases. Download, extract, make executable with 'chmod +x DigitalDecay', then run."
             };
             
             textDiv.textContent = messages[platform];
@@ -394,25 +431,23 @@ def create_github_pages_site():
         });
     </script>
 </body>
-</html>'''
+</html>"""
     
     # Write the HTML file
     with open(os.path.join(site_dir, 'index.html'), 'w') as f:
         f.write(html_content)
     
-    # Create _config.yml for GitHub Pages
-    config_content = '''title: Digital Decay
-description: A game of entropy and digital deterioration
-theme: jekyll-theme-minimal
-'''
+    # Don't create _config.yml - let GitHub Pages use defaults
+    # Just create a simple .nojekyll file to avoid Jekyll processing
+    with open(os.path.join(site_dir, '.nojekyll'), 'w') as f:
+        f.write('')
     
-    with open(os.path.join(site_dir, '_config.yml'), 'w') as f:
-        f.write(config_content)
-    
-    # Create README for GitHub Pages
-    readme_content = '''# Digital Decay - GitHub Pages Site
+    # Create a simple README for the docs directory
+    readme_content = """# Digital Decay - Game Website
 
-This directory contains the GitHub Pages site for Digital Decay.
+This directory contains the GitHub Pages website for Digital Decay.
+
+The site is a simple HTML page that provides information about the game and download links.
 
 ## Setup
 
@@ -420,32 +455,35 @@ This directory contains the GitHub Pages site for Digital Decay.
 2. Go to repository Settings → Pages
 3. Set source to "Deploy from a branch"
 4. Select "main" branch and "/docs" folder
-5. Your site will be available at: https://yourusername.github.io/digital-decay
+5. Your site will be available at: https://yourusername.github.io/repository-name
 
-## Updating Releases
+## Updating
 
-When you build new executables:
-
-1. Create a new release on GitHub
-2. Upload the zip files from your build process
-3. Update the download links in index.html if needed
-
-## Customization
-
-- Edit `docs/index.html` to modify the page content
-- Update colors by changing CSS variables at the top of the file
-- Add screenshots by placing them in `docs/assets/` and referencing them in HTML
-'''
+When you have executables ready:
+1. Create a GitHub release with your built executables
+2. Update the download links in index.html to point to the release downloads
+3. Remove the "Coming Soon" text and alert
+"""
     
     with open(os.path.join(site_dir, 'README.md'), 'w') as f:
         f.write(readme_content)
     
     print(f"GitHub Pages site created in '{site_dir}' directory")
     print("\nNext steps:")
-    print("1. Commit and push this to your GitHub repository")
-    print("2. Enable GitHub Pages in repository settings")
-    print("3. Build your executable and upload to GitHub Releases")
-    print("4. Update download links in the HTML file")
+    print("1. Commit and push this to your GitHub repository:")
+    print("   git add docs/")
+    print("   git commit -m 'Add GitHub Pages site'")
+    print("   git push origin main")
+    print("\n2. Enable GitHub Pages in your repository:")
+    print("   - Go to Settings → Pages")
+    print("   - Source: Deploy from a branch")
+    print("   - Branch: main")
+    print("   - Folder: /docs")
+    print("\n3. Your site will be available at:")
+    print("   https://yourusername.github.io/yourrepository")
+    print("\n4. When you have executables built:")
+    print("   - Create a GitHub release with the zip files")
+    print("   - Update the download links in docs/index.html")
     
     return True
 
