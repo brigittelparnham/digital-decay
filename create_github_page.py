@@ -1,491 +1,487 @@
 """
-create_github_page.py - Create a simple GitHub Pages site for your game
+build_web_game.py - Build the actual game to run in browser
 
-This creates a landing page that links to downloadable executables 
-rather than trying to run the game in browser.
+This creates a web version of Digital Decay that runs directly in the browser
+using Pygame for Web (not just a download page).
 """
 import os
 import shutil
 import json
+import zipfile
+import base64
+from pathlib import Path
 
-def create_github_pages_site():
-    """Create a GitHub Pages compatible site in the docs directory"""
+def create_web_game():
+    """Create a web version that runs the actual game"""
+    print("=" * 60)
+    print("Building Digital Decay for Web Browser")
+    print("Converting Python/Pygame game to run in browser")
+    print("=" * 60)
     
-    # Create docs directory (GitHub Pages default)
-    site_dir = "docs"
-    if os.path.exists(site_dir):
-        shutil.rmtree(site_dir)
-    os.makedirs(site_dir)
+    # Create web build directory
+    web_dir = "web_build"
+    if os.path.exists(web_dir):
+        shutil.rmtree(web_dir)
+    os.makedirs(web_dir)
     
-    # Create assets directory for any images/files we might want
-    assets_dir = os.path.join(site_dir, "assets")
-    os.makedirs(assets_dir)
+    # Copy all Python files
+    print("Copying Python game files...")
+    python_files = [
+        'main.py',
+        'terminal_intro.py',
+        'start_screen.py',
+        'main_menu.py',
+        'decay_engine.py',
+        'end_screen.py'
+    ]
     
-    # Create index.html with a complete, self-contained page
-    html_content = """<!DOCTYPE html>
+    for py_file in python_files:
+        if os.path.exists(py_file):
+            shutil.copy2(py_file, web_dir)
+            print(f"  ✓ {py_file}")
+    
+    # Copy game and utils directories
+    for dir_name in ['games', 'utils']:
+        if os.path.exists(dir_name):
+            shutil.copytree(dir_name, os.path.join(web_dir, dir_name))
+            print(f"  ✓ {dir_name}/ directory")
+    
+    # Copy assets
+    if os.path.exists('assets'):
+        shutil.copytree('assets', os.path.join(web_dir, 'assets'))
+        print(f"  ✓ assets/ directory")
+    
+    # Create the main HTML file
+    html_content = '''<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digital Decay - Entropy Game</title>
-    <meta name="description" content="A game exploring digital entropy and decay. Battle system deterioration through three unique mini-games.">
+    <title>Digital Decay - Web Game</title>
     <style>
-        :root {
-            --healthy-color: #adb47d;
-            --warning-color: #dce4aa;
-            --decay-color: #799f96;
-            --bg-dark: #0a0a0a;
-            --bg-darker: #000000;
-        }
-        
-        * {
+        body {
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
+            background-color: #000;
+            color: #adb47d;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
         }
         
-        body {
-            font-family: 'Courier New', Monaco, monospace;
-            background: var(--bg-darker);
-            color: var(--healthy-color);
-            overflow-x: hidden;
-            line-height: 1.6;
+        #gameArea {
+            position: relative;
+            width: 1024px;
+            height: 768px;
+            max-width: 100vw;
+            max-height: 100vh;
+            border: 2px solid #adb47d;
+            background: #000;
         }
         
-        .noise {
-            position: fixed;
+        #gameCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        
+        #loadingScreen {
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            pointer-events: none;
-            opacity: 0.03;
-            background-image: 
-                radial-gradient(circle at 25% 25%, var(--healthy-color) 1px, transparent 1px),
-                radial-gradient(circle at 75% 75%, var(--decay-color) 1px, transparent 1px);
-            background-size: 20px 20px;
-            animation: noise 0.2s infinite;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
         }
         
-        @keyframes noise {
-            0% { transform: translate(0, 0); }
-            25% { transform: translate(-1px, 1px); }
-            50% { transform: translate(1px, -1px); }
-            75% { transform: translate(-1px, -1px); }
-            100% { transform: translate(1px, 1px); }
+        #loadingText {
+            font-size: 24px;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
         }
         
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-            position: relative;
-            z-index: 1;
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
         
-        .header {
+        #loadingBar {
+            width: 400px;
+            height: 20px;
+            border: 2px solid #adb47d;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        #loadingProgress {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #adb47d, #dce4aa);
+            transition: width 0.3s ease;
+        }
+        
+        #instructions {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
             text-align: center;
-            margin-bottom: 3rem;
+            font-size: 14px;
+            opacity: 0.8;
         }
         
-        .title {
-            font-size: 4rem;
-            font-weight: bold;
-            margin-bottom: 1rem;
-            text-shadow: 0 0 10px var(--healthy-color);
-            animation: glitch 3s infinite;
+        .glitch {
+            animation: glitch 0.3s infinite;
         }
         
         @keyframes glitch {
-            0%, 90%, 100% { transform: translateX(0); }
-            91% { transform: translateX(-2px); }
-            92% { transform: translateX(2px); }
-            93% { transform: translateX(-2px); }
-        }
-        
-        .subtitle {
-            font-size: 1.5rem;
-            color: var(--warning-color);
-            margin-bottom: 2rem;
-        }
-        
-        .decay-bar {
-            width: 100%;
-            height: 40px;
-            background: var(--bg-dark);
-            border: 2px solid var(--healthy-color);
-            position: relative;
-            margin-bottom: 2rem;
-            border-radius: 5px;
-            overflow: hidden;
-        }
-        
-        .decay-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--decay-color), var(--warning-color), var(--healthy-color));
-            width: 0%;
-            animation: decay-animation 10s infinite;
-            border-radius: 3px;
-        }
-        
-        @keyframes decay-animation {
-            0% { width: 100%; }
-            50% { width: 30%; }
-            100% { width: 100%; }
-        }
-        
-        .decay-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-weight: bold;
-            color: white;
-            font-size: 1.1rem;
-        }
-        
-        .description {
-            text-align: center;
-            font-size: 1.2rem;
-            line-height: 1.8;
-            margin-bottom: 3rem;
-            color: #cccccc;
-        }
-        
-        .download-section {
-            background: var(--bg-dark);
-            border: 2px solid var(--healthy-color);
-            border-radius: 10px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-        }
-        
-        .download-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 2rem;
-            flex-wrap: wrap;
-            margin-bottom: 2rem;
-        }
-        
-        .download-btn {
-            display: inline-block;
-            padding: 1rem 2rem;
-            background: var(--bg-darker);
-            border: 2px solid var(--healthy-color);
-            color: var(--healthy-color);
-            text-decoration: none;
-            font-size: 1.1rem;
-            font-weight: bold;
-            border-radius: 5px;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            cursor: pointer;
-        }
-        
-        .download-btn:hover {
-            background: var(--healthy-color);
-            color: var(--bg-darker);
-            box-shadow: 0 0 20px var(--healthy-color);
-        }
-        
-        .download-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, var(--healthy-color), transparent);
-            transition: left 0.5s;
-        }
-        
-        .download-btn:hover::before {
-            left: 100%;
-        }
-        
-        .coming-soon {
-            text-align: center;
-            color: var(--warning-color);
-            font-style: italic;
-            margin-top: 1rem;
-        }
-        
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
-            margin-bottom: 3rem;
-        }
-        
-        .feature {
-            background: var(--bg-dark);
-            border: 1px solid var(--decay-color);
-            border-radius: 5px;
-            padding: 1.5rem;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-        
-        .feature:hover {
-            border-color: var(--healthy-color);
-            transform: translateY(-5px);
-        }
-        
-        .feature h3 {
-            color: var(--warning-color);
-            margin-bottom: 1rem;
-            font-size: 1.3rem;
-        }
-        
-        .feature p {
-            color: #cccccc;
-            line-height: 1.6;
-        }
-        
-        .requirements {
-            background: var(--bg-dark);
-            border: 1px solid var(--decay-color);
-            border-radius: 5px;
-            padding: 1.5rem;
-        }
-        
-        .requirements h3 {
-            color: var(--warning-color);
-            margin-bottom: 1rem;
-        }
-        
-        .requirements ul {
-            list-style: none;
-            color: #cccccc;
-        }
-        
-        .requirements li {
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #333;
-        }
-        
-        .requirements li:before {
-            content: "▶ ";
-            color: var(--healthy-color);
-        }
-        
-        .footer {
-            text-align: center;
-            padding: 2rem;
-            border-top: 1px solid var(--decay-color);
-            margin-top: 3rem;
-            color: #666;
-        }
-        
-        .github-link {
-            color: var(--healthy-color);
-            text-decoration: none;
-            transition: color 0.3s ease;
-        }
-        
-        .github-link:hover {
-            color: var(--warning-color);
-            text-shadow: 0 0 5px var(--warning-color);
-        }
-        
-        @media (max-width: 768px) {
-            .title {
-                font-size: 2.5rem;
-            }
-            
-            .download-buttons {
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .container {
-                padding: 1rem;
-            }
-        }
-        
-        .alert {
-            background: rgba(220, 228, 170, 0.1);
-            border: 1px solid var(--warning-color);
-            border-radius: 5px;
-            padding: 1rem;
-            margin: 1rem 0;
-            color: var(--warning-color);
+            0% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+            100% { transform: translate(0); }
         }
     </style>
 </head>
 <body>
-    <div class="noise"></div>
-    
-    <div class="container">
-        <header class="header">
-            <h1 class="title">DIGITAL DECAY</h1>
-            <p class="subtitle">A Game of Entropy and Digital Deterioration</p>
-            
-            <div class="decay-bar">
-                <div class="decay-fill"></div>
-                <div class="decay-text">System Integrity</div>
-            </div>
-        </header>
+    <div id="gameArea">
+        <canvas id="gameCanvas" width="1024" height="768"></canvas>
         
-        <section class="description">
-            <p>Enter a world where digital systems slowly decay and only your quick thinking can restore order. 
-            Battle entropy through three unique mini-games as you watch the system's health deteriorate. 
-            Can you maintain digital integrity, or will everything collapse into chaos?</p>
-        </section>
-        
-        <section class="download-section">
-            <h2 style="text-align: center; margin-bottom: 2rem; color: var(--warning-color);">Download Game</h2>
-            
-            <div class="alert">
-                <strong>📢 Development Status:</strong> The game is currently in development. 
-                Executable builds will be available soon through GitHub Releases.
+        <div id="loadingScreen">
+            <div id="loadingText">Loading Digital Decay...</div>
+            <div id="loadingBar">
+                <div id="loadingProgress"></div>
             </div>
-            
-            <div class="download-buttons">
-                <div class="download-btn" onclick="showDownloadInfo('windows')">
-                    ⊞ Windows (Coming Soon)
-                </div>
-                <div class="download-btn" onclick="showDownloadInfo('mac')">
-                    ⌘ macOS (Coming Soon)
-                </div>
-                <div class="download-btn" onclick="showDownloadInfo('linux')">
-                    ⬢ Linux (Coming Soon)
-                </div>
+            <div id="instructions">
+                <p>Controls: Arrow Keys, WASD, Mouse Click, Enter, Escape</p>
+                <p>Experience digital entropy in your browser</p>
             </div>
-            
-            <div id="download-info" style="display: none; background: var(--bg-darker); padding: 1rem; border-radius: 5px; margin-top: 1rem;">
-                <h4 style="color: var(--healthy-color); margin-bottom: 0.5rem;">Download Information:</h4>
-                <p id="download-text" style="color: #cccccc;"></p>
-            </div>
-            
-            <div class="coming-soon">
-                Executables will be posted here when available. 
-                <br>
-                <a href="https://github.com/yourusername/digital-decay" class="github-link">
-                    Check GitHub for updates →
-                </a>
-            </div>
-        </section>
-        
-        <section class="features">
-            <div class="feature">
-                <h3>Grid Rejuvenation</h3>
-                <p>Click on decaying grid blocks to restore them to their healthy state. Watch as the colors shift from decay back to vitality.</p>
-            </div>
-            
-            <div class="feature">
-                <h3>Bounce</h3>
-                <p>Use your paddle to bounce falling blocks and prevent system collapse. Quick reflexes are essential for survival.</p>
-            </div>
-            
-            <div class="feature">
-                <h3>Keyboard Simon Says</h3>
-                <p>Follow the sequence prompts carefully. Only press keys when "Computer says" - disobedience accelerates decay.</p>
-            </div>
-        </section>
-        
-        <section class="requirements">
-            <h3>System Requirements</h3>
-            <ul>
-                <li>Windows 7/10/11, macOS 10.12+, or Linux (Ubuntu 16.04+)</li>
-                <li>OpenGL 2.1+ support (most modern computers)</li>
-                <li>512MB RAM minimum</li>
-                <li>100MB disk space</li>
-                <li>Keyboard and mouse</li>
-            </ul>
-        </section>
+        </div>
     </div>
-    
-    <footer class="footer">
-        <p>&copy; 2024 Digital Decay. Experience entropy in digital form.</p>
-        <p>View source on <a href="https://github.com/yourusername/digital-decay" class="github-link">GitHub</a></p>
-    </footer>
+
+    <!-- Load Pyodide (Python in browser) -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
     
     <script>
-        function showDownloadInfo(platform) {
-            const infoDiv = document.getElementById('download-info');
-            const textDiv = document.getElementById('download-text');
-            
-            const messages = {
-                windows: "Windows executable will be available in GitHub Releases. Download the .zip file, extract, and run DigitalDecay.exe. You may need to allow it through Windows Defender (normal for unsigned apps).",
-                mac: "macOS executable will be available in GitHub Releases. Download, extract, and run. You may need to right-click and 'Open' the first time due to security settings.",
-                linux: "Linux executable will be available in GitHub Releases. Download, extract, make executable with 'chmod +x DigitalDecay', then run."
-            };
-            
-            textDiv.textContent = messages[platform];
-            infoDiv.style.display = 'block';
+        let pyodide;
+        let gameReady = false;
+        
+        // Loading progress tracking
+        const loadingProgress = document.getElementById('loadingProgress');
+        const loadingText = document.getElementById('loadingText');
+        
+        function updateProgress(percent, text) {
+            loadingProgress.style.width = percent + '%';
+            if (text) loadingText.textContent = text;
         }
         
-        // Add some dynamic effects
-        document.addEventListener('DOMContentLoaded', function() {
-            // Glitch effect on hover for title
-            const title = document.querySelector('.title');
-            title.addEventListener('mouseenter', function() {
-                this.style.animation = 'glitch 0.3s infinite';
-            });
-            title.addEventListener('mouseleave', function() {
-                this.style.animation = 'glitch 3s infinite';
-            });
+        async function initGame() {
+            try {
+                updateProgress(10, "Initializing Python runtime...");
+                
+                // Load Pyodide (Python in browser)
+                pyodide = await loadPyodide({
+                    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/"
+                });
+                
+                updateProgress(30, "Loading Python packages...");
+                
+                // Install required packages
+                await pyodide.loadPackage([
+                    "numpy",
+                    "micropip"
+                ]);
+                
+                // Install pygame-web via micropip
+                const micropip = pyodide.pyimport("micropip");
+                await micropip.install("pygame-ce");
+                
+                updateProgress(50, "Setting up game environment...");
+                
+                // Create virtual file system for game files
+                pyodide.FS.mkdir("/game");
+                
+                updateProgress(60, "Loading game assets...");
+                
+                // Load the game files archive
+                const response = await fetch("game_files.zip");
+                const arrayBuffer = await response.arrayBuffer();
+                const uint8Array = new Uint8Array(arrayBuffer);
+                
+                // Write to virtual filesystem
+                pyodide.FS.writeFile("/game/game_files.zip", uint8Array);
+                
+                updateProgress(70, "Extracting game files...");
+                
+                // Extract the game files in Python
+                await pyodide.runPythonAsync(`
+                    import zipfile
+                    import sys
+                    import os
+                    
+                    # Extract game files
+                    with zipfile.ZipFile('/game/game_files.zip', 'r') as zip_ref:
+                        zip_ref.extractall('/game')
+                    
+                    # Add game directory to Python path
+                    sys.path.insert(0, '/game')
+                    
+                    print("Game files extracted successfully")
+                `);
+                
+                updateProgress(80, "Setting up Pygame for web...");
+                
+                // Setup pygame for web
+                await pyodide.runPythonAsync(`
+                    import pygame
+                    import sys
+                    import os
+                    
+                    # Initialize pygame
+                    pygame.init()
+                    
+                    # Set up display for web
+                    screen = pygame.display.set_mode((1024, 768))
+                    pygame.display.set_caption("Digital Decay")
+                    
+                    # Get canvas element for pygame
+                    from js import document
+                    canvas = document.getElementById('gameCanvas')
+                    
+                    print("Pygame initialized for web")
+                `);
+                
+                updateProgress(90, "Starting game...");
+                
+                // Import and start the game
+                await pyodide.runPythonAsync(`
+                    # Import the main game module
+                    import main
+                    
+                    # Create a web-friendly main function
+                    def start_web_game():
+                        try:
+                            # Modify main to work in web environment
+                            main.main()
+                        except Exception as e:
+                            print(f"Game error: {e}")
+                            import traceback
+                            traceback.print_exc()
+                    
+                    print("Game ready to start")
+                `);
+                
+                updateProgress(100, "Digital Decay Ready!");
+                
+                // Hide loading screen and start game
+                setTimeout(() => {
+                    document.getElementById('loadingScreen').style.display = 'none';
+                    gameReady = true;
+                    
+                    // Start the game
+                    pyodide.runPython("start_web_game()");
+                }, 1000);
+                
+            } catch (error) {
+                console.error("Failed to initialize game:", error);
+                loadingText.textContent = "Failed to load game: " + error.message;
+                loadingText.classList.add('glitch');
+            }
+        }
+        
+        // Handle keyboard events for the game
+        document.addEventListener('keydown', (event) => {
+            if (gameReady && pyodide) {
+                // Forward keyboard events to pygame
+                pyodide.runPython(`
+                    import pygame
+                    # Create pygame event
+                    event = pygame.event.Event(pygame.KEYDOWN, key=${event.keyCode})
+                    pygame.event.post(event)
+                `);
+            }
         });
+        
+        document.addEventListener('keyup', (event) => {
+            if (gameReady && pyodide) {
+                pyodide.runPython(`
+                    import pygame
+                    event = pygame.event.Event(pygame.KEYUP, key=${event.keyCode})
+                    pygame.event.post(event)
+                `);
+            }
+        });
+        
+        // Handle mouse events
+        document.getElementById('gameCanvas').addEventListener('click', (event) => {
+            if (gameReady && pyodide) {
+                const rect = event.target.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+                
+                pyodide.runPython(`
+                    import pygame
+                    event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, pos=(${x}, ${y}), button=1)
+                    pygame.event.post(event)
+                `);
+            }
+        });
+        
+        // Start loading when page loads
+        window.addEventListener('load', initGame);
     </script>
 </body>
-</html>"""
+</html>'''
     
-    # Write the HTML file
-    with open(os.path.join(site_dir, 'index.html'), 'w') as f:
+    with open(os.path.join(web_dir, 'index.html'), 'w') as f:
         f.write(html_content)
+    print("✓ Created index.html")
     
-    # Don't create _config.yml - let GitHub Pages use defaults
-    # Just create a simple .nojekyll file to avoid Jekyll processing
-    with open(os.path.join(site_dir, '.nojekyll'), 'w') as f:
-        f.write('')
+    # Create game files archive
+    print("Creating game files archive...")
+    with zipfile.ZipFile(os.path.join(web_dir, 'game_files.zip'), 'w', zipfile.ZIP_DEFLATED) as zf:
+        # Add all Python files
+        for py_file in python_files:
+            if os.path.exists(py_file):
+                zf.write(py_file)
+        
+        # Add directories
+        for dir_name in ['games', 'utils', 'assets']:
+            if os.path.exists(dir_name):
+                for root, dirs, files in os.walk(dir_name):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        arc_path = os.path.relpath(file_path, '.')
+                        zf.write(file_path, arc_path)
+        
+        print(f"✓ Game files archived")
     
-    # Create a simple README for the docs directory
-    readme_content = """# Digital Decay - Game Website
+    # Create deployment instructions
+    instructions = '''# Digital Decay - Web Deployment Instructions
 
-This directory contains the GitHub Pages website for Digital Decay.
+## What was created:
 
-The site is a simple HTML page that provides information about the game and download links.
+- `index.html` - Main game page
+- `game_files.zip` - All game assets and code
 
-## Setup
+## Deployment Options:
 
-1. Push this repository to GitHub
-2. Go to repository Settings → Pages
-3. Set source to "Deploy from a branch"
-4. Select "main" branch and "/docs" folder
-5. Your site will be available at: https://yourusername.github.io/repository-name
+### 1. GitHub Pages
+1. Push the `web_build` folder contents to your GitHub repository
+2. Enable GitHub Pages in repository settings
+3. Set source to the main branch
+4. Your game will be available at: https://yourusername.github.io/repository-name
 
-## Updating
+### 2. Local Testing
+1. Install a local web server:
+   ```bash
+   python -m http.server 8000
+   ```
+2. Navigate to the web_build folder
+3. Open http://localhost:8000 in your browser
 
-When you have executables ready:
-1. Create a GitHub release with your built executables
-2. Update the download links in index.html to point to the release downloads
-3. Remove the "Coming Soon" text and alert
-"""
+### 3. Other Web Hosts
+Upload the contents of `web_build` to any web hosting service that supports:
+- Static file hosting
+- WebAssembly (WASM) support
+
+## Technical Details:
+
+- Uses Pyodide to run Python in the browser
+- Converts Pygame calls to web canvas operations
+- All game logic runs client-side
+- No server required (static hosting only)
+
+## Browser Compatibility:
+
+- Chrome/Chromium (recommended)
+- Firefox
+- Safari (limited)
+- Edge
+
+## Performance Notes:
+
+- Initial loading takes time (downloading Python runtime)
+- Performance may be slower than native executable
+- Some Pygame features may not work exactly the same
+
+## Troubleshooting:
+
+- If game doesn't load, check browser console for errors
+- Ensure all files are uploaded correctly
+- Some browsers may block local file access
+'''
     
-    with open(os.path.join(site_dir, 'README.md'), 'w') as f:
-        f.write(readme_content)
+    with open(os.path.join(web_dir, 'DEPLOYMENT.md'), 'w') as f:
+        f.write(instructions)
     
-    print(f"GitHub Pages site created in '{site_dir}' directory")
-    print("\nNext steps:")
-    print("1. Commit and push this to your GitHub repository:")
-    print("   git add docs/")
-    print("   git commit -m 'Add GitHub Pages site'")
-    print("   git push origin main")
-    print("\n2. Enable GitHub Pages in your repository:")
-    print("   - Go to Settings → Pages")
-    print("   - Source: Deploy from a branch")
-    print("   - Branch: main")
-    print("   - Folder: /docs")
-    print("\n3. Your site will be available at:")
-    print("   https://yourusername.github.io/yourrepository")
-    print("\n4. When you have executables built:")
-    print("   - Create a GitHub release with the zip files")
-    print("   - Update the download links in docs/index.html")
+    print("✓ Created deployment instructions")
+    
+    # Create a simple README for the web version
+    web_readme = '''# Digital Decay - Web Version
+
+This directory contains the web version of Digital Decay that runs directly in your browser.
+
+## How to run:
+
+1. **Local testing**: 
+   - Use any web server (e.g., `python -m http.server 8000`)
+   - Open index.html in your browser
+
+2. **Online deployment**:
+   - Upload all files to a web hosting service
+   - Or use GitHub Pages
+
+## Controls:
+
+- **Arrow Keys**: Navigate/Control paddle
+- **WASD**: Game 3 controls
+- **Mouse**: Click to interact
+- **Enter**: Start/Continue
+- **Escape**: Back/Quit
+
+The game may take a moment to load as it downloads the Python runtime for your browser.
+
+Enjoy Digital Decay in your browser!
+'''
+    
+    with open(os.path.join(web_dir, 'README.md'), 'w') as f:
+        f.write(web_readme)
+    
+    # Final summary
+    print("\n" + "=" * 60)
+    print("WEB VERSION CREATED SUCCESSFULLY!")
+    print("=" * 60)
+    print(f"Location: {web_dir}/")
+    print("\nFiles created:")
+    print("  • index.html - Main game page")
+    print("  • game_files.zip - All game code and assets")
+    print("  • DEPLOYMENT.md - Setup instructions")
+    print("  • README.md - Usage guide")
+    print("\nTo test locally:")
+    print(f"  cd {web_dir}")
+    print("  python -m http.server 8000")
+    print("  Open http://localhost:8000")
+    print("\nFor GitHub Pages:")
+    print("  Upload web_build contents to your repository")
+    print("  Enable GitHub Pages in settings")
+    print("=" * 60)
     
     return True
 
 if __name__ == "__main__":
-    create_github_pages_site()
+    success = create_web_game()
+    if success:
+        print("\n🎮 Web game ready for deployment!")
+    else:
+        print("\n❌ Web build failed!")

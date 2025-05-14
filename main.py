@@ -1,3 +1,106 @@
+# ASSET DEBUG START
+print("="*60)
+print("DIGITAL DECAY - ASSET DEBUG")
+print("="*60)
+
+import sys
+import os
+
+print(f"Python: {sys.version}")
+print(f"Platform: {sys.platform}")
+
+# Check execution context
+if hasattr(sys, '_MEIPASS'):
+    print(f"PyInstaller bundle: {sys._MEIPASS}")
+    bundle_path = sys._MEIPASS
+    
+    # Check bundle contents
+    print(f"Bundle contents: {os.listdir(bundle_path)}")
+    
+    # Check assets specifically
+    assets_path = os.path.join(bundle_path, 'assets')
+    if os.path.exists(assets_path):
+        print(f"✓ Assets found at: {assets_path}")
+        assets_contents = os.listdir(assets_path)
+        print(f"Assets contents: {assets_contents}")
+        
+        # Check each expected directory
+        for item in ['decay_grids.json', 'images', 'fonts', 'blender']:
+            item_path = os.path.join(assets_path, item)
+            if os.path.exists(item_path):
+                if os.path.isfile(item_path):
+                    size = os.path.getsize(item_path)
+                    print(f"✓ {item} (file, {size} bytes)")
+                else:
+                    contents = os.listdir(item_path)
+                    print(f"✓ {item}/ directory: {contents}")
+                    
+                    # Special checks
+                    if item == 'blender':
+                        for subdir in ['objects', 'animation']:
+                            subdir_path = os.path.join(item_path, subdir)
+                            if os.path.exists(subdir_path):
+                                subdir_contents = os.listdir(subdir_path)
+                                print(f"  ✓ blender/{subdir}/: {subdir_contents}")
+                                if subdir == 'objects':
+                                    obj_files = [f for f in subdir_contents if f.endswith('.obj')]
+                                    print(f"    OBJ files: {obj_files}")
+                            else:
+                                print(f"  ✗ blender/{subdir}/ not found")
+                    
+                    elif item == 'fonts':
+                        ttf_files = [f for f in contents if f.endswith('.ttf')]
+                        print(f"  TTF files: {ttf_files}")
+            else:
+                print(f"✗ {item} not found")
+    else:
+        print(f"✗ Assets directory not found!")
+        print(f"Available in bundle: {os.listdir(bundle_path)}")
+else:
+    print("Running in development mode")
+    if os.path.exists('assets'):
+        print("Development assets found")
+    else:
+        print("No assets directory in development!")
+
+print("="*60)
+# ASSET DEBUG END\n# DEBUG: Digital Decay starting
+print("=" * 50)
+print("DEBUG: Digital Decay Initialization")
+print("=" * 50)
+
+import sys
+import os
+
+print(f"Python version: {sys.version}")
+print(f"Platform: {sys.platform}")
+print(f"Executable: {sys.executable}")
+
+# Check if running from PyInstaller
+if hasattr(sys, '_MEIPASS'):
+    print(f"PyInstaller bundle: {sys._MEIPASS}")
+    print(f"Current working directory: {os.getcwd()}")
+    
+    # List bundle contents
+    bundle_assets = os.path.join(sys._MEIPASS, 'assets')
+    if os.path.exists(bundle_assets):
+        print(f"Bundle assets found: {bundle_assets}")
+        print(f"Assets contents: {os.listdir(bundle_assets)}")
+        
+        # Check for OBJ files specifically
+        obj_dir = os.path.join(bundle_assets, 'blender', 'objects')
+        if os.path.exists(obj_dir):
+            obj_files = [f for f in os.listdir(obj_dir) if f.endswith('.obj')]
+            print(f"OBJ files in bundle: {obj_files}")
+        else:
+            print(f"OBJ directory not found: {obj_dir}")
+    else:
+        print(f"Assets not found in bundle!")
+        print(f"Bundle contents: {os.listdir(sys._MEIPASS)}")
+else:
+    print("Running in development mode")
+
+print("=" * 50)
 """
 main.py - Entry point for the Digital Decay game with Start/End screens and preloading
 """

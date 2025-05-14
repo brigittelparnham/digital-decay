@@ -5,60 +5,80 @@ import sys
 
 block_cipher = None
 
-# Define data files - be very explicit about paths
+# Define data files based on actual structure
 datas = []
 
-# Add decay_grids.json specifically
-if os.path.exists('assets/decay_grids.json'):
-    datas.append(('assets/decay_grids.json', 'assets'))
-elif os.path.exists('decay_grids.json'):
-    datas.append(('decay_grids.json', 'assets'))
+# Add the entire assets directory
+if os.path.exists('assets'):
+    print("Adding assets directory...")
+    datas.append(('assets', 'assets'))
 
-# Add entire directories
-asset_dirs = [
-    'assets/blender',
-    'assets/fonts', 
-    'assets/sounds'
+# Verify specific critical files
+critical_files = [
+    ('assets/decay_grids.json', 'assets'),
 ]
 
-for asset_dir in asset_dirs:
-    if os.path.exists(asset_dir):
-        for root, dirs, files in os.walk(asset_dir):
-            for file in files:
-                file_path = os.path.join(root, file)
-                # Calculate relative path from project root
-                rel_path = os.path.relpath(root, '.')
-                datas.append((file_path, rel_path))
+for src, dest in critical_files:
+    if os.path.exists(src):
+        print(f"Verified critical file: {src}")
+    else:
+        print(f"WARNING: Missing critical file: {src}")
 
-# Add Python modules
-for module_dir in ['games', 'utils']:
-    if os.path.exists(module_dir):
-        for root, dirs, files in os.walk(module_dir):
-            for file in files:
-                if file.endswith('.py'):
-                    file_path = os.path.join(root, file)
-                    rel_path = os.path.relpath(root, '.')
-                    datas.append((file_path, rel_path))
-
-# Hidden imports
+# Hidden imports (comprehensive list)
 hiddenimports = [
+    # Pygame modules
     'pygame',
     'pygame.image',
     'pygame.font',
+    'pygame.mixer',
+    'pygame.transform',
+    'pygame.time',
+    'pygame.event',
+    'pygame.key',
+    'pygame.mouse',
+    'pygame.display',
+    'pygame.surface',
+    'pygame.rect',
+    'pygame.color',
+    
+    # OpenGL
     'OpenGL',
     'OpenGL.GL',
     'OpenGL.GLU',
+    
+    # Core Python
     'numpy',
     'colorama',
     'json',
+    'random',
+    'math',
+    'time',
+    'os',
+    'sys',
+    're',
+    
+    # Game modules
+    'games',
     'games.game1',
     'games.game2', 
     'games.game3',
+    
+    # Utility modules
+    'utils',
     'utils.blender_loader',
     'utils.color_utils',
     'utils.decay_bar',
+    
+    # Main game modules
+    'main',
+    'main_menu',
+    'start_screen',
+    'end_screen',
+    'decay_engine',
+    'terminal_intro',
 ]
 
+# Analysis
 a = Analysis(
     ['main.py'],
     pathex=[os.path.abspath('.')],
@@ -77,7 +97,7 @@ a = Analysis(
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
-# Create a regular executable first
+# Single file executable
 exe = EXE(
     pyz,
     a.scripts,
@@ -92,7 +112,7 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,  # No console window
+    console=True,  # Keep console for now to debug
     disable_windowed_traceback=False,
     argv_emulation=True,
     target_arch=None,
@@ -100,7 +120,7 @@ exe = EXE(
     entitlements_file=None,
 )
 
-# Create app bundle
+# Mac app bundle
 app = BUNDLE(
     exe,
     name='DigitalDecay.app',
@@ -113,6 +133,6 @@ app = BUNDLE(
         'CFBundleVersion': '1.0.0',
         'CFBundleShortVersionString': '1.0.0',
         'NSHighResolutionCapable': 'True',
-        'NSRequiresAquaSystemAppearance': 'False',
+        'LSMinimumSystemVersion': '10.12',
     }
 )
