@@ -1,19 +1,19 @@
 """
-decay_bar.py - Decay progress bar implementation with colors from decay_grids.json
+Fixed decay_bar.py - Decay progress bar implementation
 """
-import pygame
+import sys
 import os
+import pygame
 import json
-from utils.color_utils import load_jetbrains_mono_font
+from .asset_utils import get_asset_path
+from .color_utils import load_jetbrains_mono_font
 
 # Load colors from decay_grids.json
 def load_decay_colors():
     """Load color scheme from decay_grids.json"""
     try:
-        # Get the directory of the current file
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        # Path to the decay_grids.json file - need to go up one level to get to the project root
-        json_path = os.path.join(current_dir, '..', 'assets', 'decay_grids.json')
+        # Load the decay grids JSON using centralized asset function
+        json_path = get_asset_path('decay_grids.json')
         
         with open(json_path, 'r') as f:
             decay_grids = json.load(f)
@@ -63,7 +63,7 @@ class DecayBar:
         self.border_color = (50, 50, 50)  # Dark gray border
         self.text_color = (255, 255, 255)  # White text - more visible
         
-        # Load JetBrains Mono font - using local function to avoid circular imports
+        # Load JetBrains Mono font - using the centralized function
         self.font = load_jetbrains_mono_font(16)
     
     def draw(self, surface):

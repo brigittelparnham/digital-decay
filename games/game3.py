@@ -4,19 +4,19 @@ game3.py - Keyboard Simon Says game with DISSOLVE animation frames synced to dec
 import pygame
 import random
 import os
+import sys
 import time
 import re
 import json
 from utils.decay_bar import DecayBar
 from utils.color_utils import load_jetbrains_mono_font
+from utils.asset_utils import get_asset_path
+
 
 def load_decay_colors():
     """Load color scheme from decay_grids.json"""
     try:
-        # Get the directory of the current file
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        # Path to the decay_grids.json file - need to go up one level to get to the project root
-        json_path = os.path.join(current_dir, '..', 'assets', 'decay_grids.json')
+        json_path = get_asset_path('decay_grids.json')
         
         with open(json_path, 'r') as f:
             decay_grids = json.load(f)
@@ -52,7 +52,7 @@ class BlenderAnimation:
         
         # If no base directory is specified, use the default path
         if base_dir is None:
-            base_dir = os.path.join("assets", "blender", "animation")
+           base_dir = get_asset_path("blender", "animation")
         
         # Look for rerender folder
         rerender_dir = os.path.join(base_dir, "rerender")

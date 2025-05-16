@@ -1,5 +1,19 @@
+# Digital Decay - Requirements for Python 3.13
+# Note: Python 3.11-3.12 recommended for better PyInstaller compatibility
+
+# Core game dependencies
 pygame>=2.0.0
 PyOpenGL>=3.1.0
-numpy>=1.19.0
+numpy==1.24.3  # Specific version for Python 3.13 compatibility
 colorama>=0.4.4
-PyInstaller>=4.5.0
+
+# Build dependencies
+PyInstaller>=6.0.0  # Latest version for Python 3.13 support
+
+# Compatibility helpers
+setuptools>=65.0.0
+wheel>=0.37.0
+
+# Additional dependencies that might help
+importlib-metadata>=4.0.0  # Helps with module discovery
+packaging>=21.0.0  # Helps with version handling

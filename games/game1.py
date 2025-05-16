@@ -6,16 +6,17 @@ import random
 import math
 import json
 import os
+import sys
 from utils.decay_bar import DecayBar
 from utils.color_utils import load_jetbrains_mono_font
+from utils.asset_utils import get_asset_path
+
 
 # Load the decay grids JSON
-# Get the directory of the current file
-current_dir = os.path.dirname(os.path.abspath(__file__))
-# Go up one level to the project root, then into assets
-json_path = os.path.join(current_dir, '..', 'assets', 'decay_grids.json')
+json_path = get_asset_path('decay_grids.json')
 with open(json_path, 'r') as f:
     DECAY_GRIDS = json.load(f)
+
 
 class Block:
     """Represents a single block in the grid"""

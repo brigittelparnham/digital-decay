@@ -2,26 +2,28 @@
 end_screen.py - End screen with PNG images and original intense glitchy effects
 """
 import os
+import sys
 import pygame
 import random
 import math
 import time
 import json
+from decay_engine import DecayEngine
 from utils.color_utils import load_jetbrains_mono_font
+from utils.asset_utils import get_asset_path
 
 # Constants
 SCREEN_WIDTH = 1024
 SCREEN_HEIGHT = 768
 FPS = 60
 
+
 # Load colors from decay_grids.json
 def load_decay_colors():
     """Load color scheme from decay_grids.json"""
     try:
         # Get the directory of the current file
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        # Path to the decay_grids.json file
-        json_path = os.path.join(current_dir, 'assets', 'decay_grids.json')
+        json_path = get_asset_path('decay_grids.json')
         
         with open(json_path, 'r') as f:
             decay_grids = json.load(f)
@@ -259,7 +261,7 @@ def run_end_screen():
     
     image_configs = [
         {
-            'path': os.path.join('assets', 'images', 'cubes.png'),
+            'path': get_asset_path('images', 'cubes.png'),
             'pos': (SCREEN_WIDTH // 2, title_y),  # Same as start screen
             'glitch_intensity': 0.2,  # SAME AS START SCREEN
             'scale': 1.2,  # Same scale as start
@@ -267,7 +269,7 @@ def run_end_screen():
             'max_height': 180
         },
         {
-            'path': os.path.join('assets', 'images', 'digital.png'),
+            'path': get_asset_path('images', 'digital.png'),
             'pos': (SCREEN_WIDTH // 2 - 160, title_y),  # Same as start screen
             'glitch_intensity': 0.15,  # SAME AS START SCREEN
             'scale': 0.9,  # Same scale as start
@@ -275,7 +277,7 @@ def run_end_screen():
             'max_height': 120
         },
         {
-            'path': os.path.join('assets', 'images', 'shape_around_decay.png'),
+            'path': get_asset_path('images', 'shape_around_decay.png'),
             'pos': (SCREEN_WIDTH // 2, title_y),  # Same as start screen
             'glitch_intensity': 0.1,  # SAME AS START SCREEN
             'scale': 1.3,  # Same scale as start
@@ -283,7 +285,7 @@ def run_end_screen():
             'max_height': 140
         },
         {
-            'path': os.path.join('assets', 'images', 'decay.png'),
+            'path': get_asset_path('images', 'decay.png'),
             'pos': (SCREEN_WIDTH // 2 - 5, title_y),  # Same as start screen
             'glitch_intensity': 0.15,  # SAME AS START SCREEN
             'scale': 1.3,  # Same scale as start
@@ -291,7 +293,7 @@ def run_end_screen():
             'max_height': 120
         },
         {
-            'path': os.path.join('assets', 'images', 'game.png'),
+            'path': get_asset_path('images', 'game.png'),
             'pos': (SCREEN_WIDTH // 2 + 140, title_y + 5),  # Same as start screen
             'glitch_intensity': 0.1,  # SAME AS START SCREEN
             'scale': 0.9,  # Same scale as start
@@ -299,7 +301,7 @@ def run_end_screen():
             'max_height': 100
         },
         {
-            'path': os.path.join('assets', 'images', 'shape_around_enter.png'),
+            'path': get_asset_path('images', 'shape_around_enter.png'),
             'pos': (SCREEN_WIDTH // 2, SCREEN_HEIGHT * 2 // 3 - 5),  # Same as start screen
             'glitch_intensity': 0.05,  # SAME AS START SCREEN
             'scale': 0.8,  # Same scale as start
@@ -307,7 +309,7 @@ def run_end_screen():
             'max_height': 100
         },
         {
-            'path': os.path.join('assets', 'images', 'press_enter.png'),  # KEEP PRESS ENTER for now
+            'path': get_asset_path('images', 'press_enter.png'),  # KEEP PRESS ENTER for now
             'pos': (SCREEN_WIDTH // 2 - 7, SCREEN_HEIGHT * 2 // 3),  # Same position as press_enter
             'glitch_intensity': 0.1,  # SAME AS START SCREEN
             'scale': 1.1,  # Same scale as start

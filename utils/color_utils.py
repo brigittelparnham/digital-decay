@@ -1,8 +1,11 @@
 """
-color_utils.py - Utility functions for color manipulation
+Fixed color_utils.py - Utility functions for color manipulation
 """
+import sys
+import os
 import math
 import random
+from .asset_utils import get_asset_path
 
 def interpolate_color(color1, color2, factor):
     """
@@ -199,26 +202,19 @@ def load_jetbrains_mono_font(size=16):
     Returns:
         pygame.font.Font: Loaded font object
     """
-    import os
     import pygame
     
-    # Try multiple possible paths for the font
-    font_paths = [
-        os.path.join("assets", "fonts", "JetBrainsMono-Regular.ttf"),
-        os.path.join("assets", "fonts", "JetBrains_Mono", "JetBrainsMono-Regular.ttf"),
-        os.path.join("assets", "fonts", "JetBrains_Mono", "static", "JetBrainsMono-Regular.ttf"),
-        os.path.join("assets", "fonts", "JetBrains_Mono", "ttf", "JetBrainsMono-Regular.ttf")
-    ]
+    # Get font path using centralized asset function
+    font_path = get_asset_path("fonts", "JetBrainsMono-Regular.ttf")
     
-    # Try each path
-    for font_path in font_paths:
-        if os.path.exists(font_path):
-            try:
-                print(f"Successfully loaded font from: {font_path}")
-                return pygame.font.Font(font_path, size)
-            except Exception as e:
-                print(f"Error loading font from {font_path}: {e}")
+    # Try to load the font
+    if os.path.exists(font_path):
+        try:
+            print(f"Successfully loaded font from: {font_path}")
+            return pygame.font.Font(font_path, size)
+        except Exception as e:
+            print(f"Error loading font from {font_path}: {e}")
     
-    # If all paths fail, use default font
+    # If font loading fails, use default font
     print("Warning: Could not find JetBrains Mono font, using default font")
     return pygame.font.Font(None, size)

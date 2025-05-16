@@ -2,6 +2,7 @@
 main_menu.py - Main menu with flying Blender objects - Fixed implementation
 """
 import os
+import sys
 import random
 import math
 import pygame
@@ -14,17 +15,16 @@ import numpy as np
 from utils.blender_loader import BlenderModel, create_default_cube, create_default_sphere
 from utils.decay_bar import DecayBar
 from utils.color_utils import load_jetbrains_mono_font
+from utils.asset_utils import get_asset_path
 
 # Constants
 SCREEN_WIDTH = 1024
 SCREEN_HEIGHT = 768
 FPS = 60
 
+
 # Load the decay grids JSON
-# Get the directory of the current file
-current_dir = os.path.dirname(os.path.abspath(__file__))
-# Go to the project root
-json_path = os.path.join(current_dir, 'assets', 'decay_grids.json')
+json_path = get_asset_path('decay_grids.json')
 try:
     with open(json_path, 'r') as f:
         DECAY_GRIDS = json.load(f)
@@ -367,7 +367,7 @@ class MainMenu:
             BlenderObject: The newly created object
         """
         # Define path to OBJ files
-        obj_dir = os.path.join("assets", "blender", "objects")
+        obj_dir = get_asset_path("blender", "objects")
         
         # If directory doesn't exist, create it
         if not os.path.exists(obj_dir):

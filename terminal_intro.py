@@ -1,12 +1,18 @@
 """
-terminal_intro.py - Terminal "Digital Decay" intro animation with colors from decay_grids.json
+Fixed terminal_intro.py - Terminal intro animation with proper asset loading
 """
 import os
-import time
 import sys
+import time
 import random
 import json
 from colorama import init, Fore, Style
+
+# Add the project root to the path so we can import utils
+project_root = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, project_root)
+
+from utils.asset_utils import get_asset_path
 
 # Initialize colorama
 init()
@@ -15,10 +21,8 @@ init()
 def load_decay_colors():
     """Load color scheme from decay_grids.json"""
     try:
-        # Get the directory of the current file
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        # Path to the decay_grids.json file
-        json_path = os.path.join(current_dir, 'assets', 'decay_grids.json')
+        # Load the decay grids JSON using centralized asset function
+        json_path = get_asset_path('decay_grids.json')
         
         with open(json_path, 'r') as f:
             decay_grids = json.load(f)
